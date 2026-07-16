@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>GAIA — physical-world oracle gateway</title>
+<meta name="description" content="GAIA sells Ed25519-attested IoT sensor readings as paid AIMarket capabilities, with plausibility verify for Pay-on-Verified escrow." />
+<meta property="og:type" content="website" />
+<meta property="og:title" content="GAIA — physical-world oracle gateway" />
+<meta property="og:description" content="Attested IoT readings. Plausibility-verified settlement. Third oracle class of the AICOM ecosystem." />
+<meta property="og:url" content="https://alexar76.github.io/gaia/" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --void: #061018;
+    --ink: #e8f4f0;
+    --muted: #8fb3a8;
+    --faint: #5a7a70;
+    --terra: #2dd4a8;
+    --sky: #5ec8ff;
+    --soil: #c4a574;
+    --brd: rgba(46, 212, 168, 0.22);
+    --head: "Syne", system-ui, sans-serif;
+    --body: "DM Sans", system-ui, sans-serif;
+    --maxw: 1080px;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0; background: var(--void); color: var(--ink);
+    font-family: var(--body); font-size: 17px; line-height: 1.55;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden;
+  }
+  .sky {
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background:
+      radial-gradient(55vw 45vw at 72% 8%, rgba(94, 200, 255, 0.16), transparent 58%),
+      radial-gradient(48vw 40vw at 12% 78%, rgba(45, 212, 168, 0.14), transparent 55%),
+      radial-gradient(70vw 50vw at 50% 100%, rgba(196, 165, 116, 0.08), transparent 50%),
+      linear-gradient(180deg, #040c12, #061018 40%, #0a1a14);
+  }
+  .globe {
+    position: fixed; right: -8vw; top: 12vh; width: min(52vw, 520px); height: min(52vw, 520px);
+    border-radius: 50%; z-index: 0; pointer-events: none; opacity: 0.55;
+    background:
+      radial-gradient(circle at 32% 28%, rgba(232, 244, 240, 0.35), transparent 28%),
+      radial-gradient(circle at 55% 45%, #1a6b55 0%, #0d3d38 42%, #061820 72%);
+    box-shadow: inset -40px -20px 80px rgba(0,0,0,0.45), 0 0 80px rgba(45, 212, 168, 0.12);
+    animation: drift 18s ease-in-out infinite alternate;
+  }
+  @keyframes drift {
+    from { transform: translateY(0) rotate(0deg); }
+    to { transform: translateY(18px) rotate(6deg); }
+  }
+  .wrap { position: relative; z-index: 2; max-width: var(--maxw); margin: 0 auto; padding: 0 22px; }
+
+  nav {
+    position: sticky; top: 0; z-index: 40;
+    backdrop-filter: blur(14px);
+    background: linear-gradient(180deg, rgba(6,16,24,0.94), rgba(6,16,24,0.45));
+    border-bottom: 1px solid var(--brd);
+  }
+  nav .row {
+    display: flex; align-items: center; justify-content: space-between;
+    min-height: 64px; gap: 14px; flex-wrap: wrap; padding: 8px 0;
+  }
+  .brand {
+    display: flex; align-items: center; gap: 12px;
+    font-family: var(--head); font-weight: 800; letter-spacing: 0.18em; font-size: 15px;
+    text-decoration: none; color: var(--ink);
+  }
+  .brand .orb {
+    width: 16px; height: 16px; border-radius: 50%;
+    background: radial-gradient(circle at 35% 30%, #dffcf0, var(--terra) 45%, #0a4a3c);
+    box-shadow: 0 0 16px rgba(45, 212, 168, 0.55);
+    animation: pulse 3s ease-in-out infinite;
+  }
+  @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  .nav-links { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+  .nav-links a {
+    color: var(--muted); text-decoration: none; font-size: 12px; font-weight: 600;
+    letter-spacing: 0.08em; text-transform: uppercase;
+  }
+  .nav-links a:hover { color: var(--terra); }
+  .nav-cta {
+    color: #042018 !important; background: linear-gradient(100deg, var(--terra), var(--sky));
+    padding: 8px 14px; border-radius: 8px;
+  }
+
+  .hero {
+    min-height: calc(100vh - 64px);
+    display: flex; flex-direction: column; justify-content: center;
+    padding: 48px 0 72px; max-width: 640px;
+  }
+  .hero h1 {
+    font-family: var(--head); font-weight: 800; font-size: clamp(48px, 9vw, 88px);
+    letter-spacing: -0.03em; line-height: 0.95; margin: 0 0 18px;
+  }
+  .hero h1 span { color: var(--terra); }
+  .hero p {
+    margin: 0 0 28px; color: var(--muted); font-size: 18px; max-width: 36em;
+  }
+  .ctas { display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 12px 18px; border-radius: 10px; text-decoration: none; font-weight: 600; font-size: 14px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .btn:hover { transform: translateY(-1px); }
+  .btn-primary {
+    color: #042018; background: linear-gradient(100deg, var(--terra), #7aefc8);
+    box-shadow: 0 8px 28px rgba(45, 212, 168, 0.25);
+  }
+  .btn-ghost {
+    color: var(--ink); border: 1px solid var(--brd); background: rgba(8, 24, 20, 0.45);
+  }
+
+  section { padding: 72px 0; border-top: 1px solid var(--brd); }
+  section h2 {
+    font-family: var(--head); font-size: clamp(26px, 4vw, 36px); margin: 0 0 10px; letter-spacing: -0.02em;
+  }
+  section .lead { color: var(--muted); margin: 0 0 28px; max-width: 40em; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px; }
+  .item h3 {
+    font-family: var(--head); font-size: 16px; margin: 0 0 8px; letter-spacing: 0.04em; color: var(--sky);
+  }
+  .item p { margin: 0; color: var(--muted); font-size: 15px; }
+
+  footer {
+    padding: 36px 0 48px; border-top: 1px solid var(--brd);
+    color: var(--faint); font-size: 13px;
+    display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap;
+  }
+  footer a { color: var(--muted); }
+
+  @media (max-width: 720px) {
+    .globe { opacity: 0.28; right: -20vw; top: 8vh; }
+    .hero { min-height: auto; padding-top: 56px; }
+  }
+</style>
+</head>
+<body>
+  <div class="sky" aria-hidden="true"></div>
+  <div class="globe" aria-hidden="true"></div>
+
+  <nav>
+    <div class="wrap row">
+      <a class="brand" href="#top"><span class="orb" aria-hidden="true"></span>GAIA</a>
+      <div class="nav-links">
+        <a href="#what">What</a>
+        <a href="#surface">Surface</a>
+        <a href="https://github.com/alexar76/gaia">Source</a>
+        <a class="nav-cta" href="https://iot.modelmarket.dev/">Live demo</a>
+      </div>
+    </div>
+  </nav>
+
+  <main id="top">
+    <div class="wrap hero">
+      <h1>GAIA<span>.</span></h1>
+      <p>Physical-world oracle gateway — Ed25519-attested IoT readings sold as AIMarket capabilities, settled only when physics checks out.</p>
+      <div class="ctas">
+        <a class="btn btn-primary" href="https://iot.modelmarket.dev/">Open live demo</a>
+        <a class="btn btn-ghost" href="https://github.com/alexar76/gaia">View on GitHub</a>
+        <a class="btn btn-ghost" href="https://ghcr.io/alexar76/gaia">ghcr.io/alexar76/gaia</a>
+      </div>
+    </div>
+
+    <section id="what">
+      <div class="wrap">
+        <h2>Third oracle class</h2>
+        <p class="lead">Math oracles prove computation. Metis judges LLM output. GAIA grounds escrow in sensor physics — an honest reading pays the provider; a lying sensor refunds the buyer.</p>
+        <div class="grid">
+          <div class="item">
+            <h3>Attestation</h3>
+            <p>Per-device Ed25519 keys. Gateway countersignature binds invoke request to receipt.</p>
+          </div>
+          <div class="item">
+            <h3>Plausibility</h3>
+            <p>Metis-envelope <code>/v1/verify</code> for Pay-on-Verified settlement on the hub.</p>
+          </div>
+          <div class="item">
+            <h3>Live relays</h3>
+            <p>NOAA, OpenSenseMap, and OGC SensorThings — real public APIs, same wire format.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="surface">
+      <div class="wrap">
+        <h2>One wire surface</h2>
+        <p class="lead">AIMarket v2 manifest + invoke, W3C WoT Thing Descriptions, and the verifier slot — demo fleet or live sensors, same protocol.</p>
+        <div class="ctas">
+          <a class="btn btn-ghost" href="https://github.com/alexar76/gaia#quickstart">Quickstart</a>
+          <a class="btn btn-ghost" href="https://github.com/alexar76/aicom/blob/main/docs/iot-physical-oracles.md">Deep dive</a>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <span>GAIA · AICOM / AIMarket ecosystem · MIT</span>
+    <span>
+      <a href="https://iot.modelmarket.dev/">iot.modelmarket.dev</a>
+      ·
+      <a href="https://github.com/alexar76/gaia/pkgs/container/gaia">Packages</a>
+    </span>
+  </footer>
+</body>
+</html>

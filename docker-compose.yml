@@ -1,0 +1,55 @@
+# GAIA — physical-world oracle gateway. Deployed on the oracle host
+# (78.17.126.214) alongside the oracle family, published on its own domain
+# iot.modelmarket.dev through the nginx TLS edge (see
+# deploy/nginx/iot.modelmarket.dev.conf). Both containers bind LOOPBACK only —
+# never 0.0.0.0 — so nothing is exposed on a raw port; nginx is the only edge.
+#
+# Build from the MONOREPO ROOT (the backend needs oracle-core in context):
+#     docker compose -f gaia/docker-compose.yml up -d --build
+services:
+  gaia-backend:
+    build:
+      context: ..
+      dockerfile: gaia/Dockerfile
+    environment:
+      GAIA_PORT: "9320"
+      GAIA_PUBLIC_URL: ${GAIA_PUBLIC_URL:-https://iot.modelmarket.dev}
+      GAIA_CORS_ORIGINS: ${GAIA_CORS_ORIGINS:-https://iot.modelmarket.dev}
+      # Public demo: crypto master switch OFF → invokes served free (no escrow
+      # debits), signing/verify/WoT all still work. Set AIFACTORY_CRYPTO_ENABLED=1
+      # only when wiring real settlement.
+      AIFACTORY_CRYPTO_ENABLED: ${AIFACTORY_CRYPTO_ENABLED:-0}
+      # Simulation control plane is NOT exposed on the public edge (fail-closed):
+      # /sim/* is only for a local/dev instance. Flip to 1 behind auth if needed.
+      GAIA_SIM_CONTROL: ${GAIA_SIM_CONTROL:-0}
+      # Persist per-device + gateway signing keys across restarts.
+      GAIA_KEY_DIR: /data/devices
+      GAIA_SIGNING_KEY_PATH: /data/gaia_signing_key
+    volumes:
+      - gaia-keys:/data
+    ports:
+      # Loopback only — published via nginx (TLS + per-IP limit). A 0.0.0.0 bind
+      # would insert a Docker DNAT rule ahead of UFW and expose the raw port.
+      - "127.0.0.1:9320:9320"
+    restart: unless-stopped
+    networks:
+      - default
+      - ecosystem
+
+  gaia-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:5185:80"
+    restart: unless-stopped
+
+volumes:
+  gaia-keys:
+
+# Shared ecosystem network (same one the hub / metis / oracles join) so a
+# future live-settlement wiring can reach them by service name. Created by the
+# hub/oracles stack; `external: true` means GAIA never owns or recreates it.
+networks:
+  ecosystem:
+    external: true

@@ -1,0 +1,39 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install oracle-core + gaia
+        run: |
+          python -m pip install --upgrade pip
+          if [[ -d vendor/oracle-core ]]; then
+            pip install -e vendor/oracle-core -e ".[dev]"
+          else
+            pip install -e ".[dev]"
+          fi
+
+      - name: Pytest
+        run: python -m pytest tests/ -q --tb=short --maxfail=5
