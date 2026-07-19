@@ -1,0 +1,31 @@
+# Satellite image for alexar76/gaia (build context = this repo root).
+# oracle-core is vendored at mirror time into vendor/oracle-core/.
+# Monorepo deploy still uses gaia/Dockerfile from the aicom root.
+FROM python:3.11-slim
+
+LABEL org.opencontainers.image.title="GAIA"
+LABEL org.opencontainers.image.description="Physical-world oracle gateway — Ed25519-attested IoT readings as AIMarket capabilities"
+LABEL org.opencontainers.image.source="https://github.com/alexar76/gaia"
+LABEL org.opencontainers.image.licenses="MIT"
+
+WORKDIR /app
+
+COPY vendor/oracle-core /app/oracle-core
+COPY pyproject.toml README.md LICENSE ./
+COPY gaia ./gaia
+
+RUN pip install --no-cache-dir -e /app/oracle-core -e . \
+    && groupadd --system --gid 10001 gaia \
+    && useradd --system --uid 10001 --gid gaia --shell /usr/sbin/nologin --home-dir /app gaia \
+    && mkdir -p /data \
+    && chown -R gaia:gaia /app /data
+
+USER gaia:gaia
+
+ENV GAIA_PORT=9320
+ENV GAIA_KEY_DIR=/data/devices
+ENV GAIA_SIGNING_KEY_PATH=/data/gaia_signing_key
+
+EXPOSE 9320
+
+CMD ["python", "-m", "gaia.main"]
