@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install oracle-core + gaia
+        run: |
+          python -m pip install --upgrade pip
+          if [[ -d vendor/oracle-core ]]; then
+            pip install -e vendor/oracle-core -e ".[dev]"
+          else
+            pip install -e ".[dev]"
+          fi
+          pip install pytest-cov
+
+      - name: Pytest + coverage
+        run: |
+          python -m pytest tests/ -q --tb=short --maxfail=5 \
+            --cov=gaia --cov-report=term-missing --cov-report=json:coverage.json
+          python3 scripts/generate_coverage_badge.py coverage.json docs/badges/coverage.svg
+          python3 scripts/generate_tests_badge.py --rootdir . --out docs/badges/tests.json
+          echo "Coverage: $(grep -oE '[0-9]+%' docs/badges/coverage.svg | tail -1)"
+          echo "Tests: $(python3 -c "import json;print(json.load(open('docs/badges/tests.json'))['message'])")"
