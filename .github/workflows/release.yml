@@ -1,0 +1,40 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install and test
+        run: |
+          python -m pip install --upgrade pip build
+          if [[ -d vendor/oracle-core ]]; then
+            pip install -e vendor/oracle-core -e ".[dev]"
+          else
+            pip install -e ".[dev]"
+          fi
+          python -m pytest tests/ -q --maxfail=5
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Upload release artifacts
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            dist/*
+          generate_release_notes: true
