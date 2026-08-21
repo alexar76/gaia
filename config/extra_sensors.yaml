@@ -1,0 +1,460 @@
+# Extra sensors — operator-added devices for GAIA fleet + ATLAS pins.
+#
+# Canonical: gaia/config/extra_sensors.yaml
+# Mirror:    atlas/config/extra_sensors.yaml
+#
+# Densify sparse LIVE layers with real upstream anchors (no invented sensors).
+# Primary *-01 devices stay in code; these add geographic coverage.
+#
+# ONE COMMAND to append more:
+#   python3 scripts/add_gaia_atlas_sensor.py --help
+#
+# Guide: docs/add-gaia-atlas-sensor.md
+
+version: 1
+sensors:
+  # ── Radiation (Safecast CC0) — query anchors in dense citizen networks ─────
+  - kind: safecast
+    device_id: safecast-tokyo
+    lat: 35.6762
+    lon: 139.6503
+    place: Tokyo
+    label: Safecast · Tokyo
+    aliases: [tokyo, токио]
+  - kind: safecast
+    device_id: safecast-sf
+    lat: 37.7749
+    lon: -122.4194
+    place: San Francisco
+    label: Safecast · San Francisco
+    aliases: ["san francisco", sf]
+  - kind: safecast
+    device_id: safecast-denver
+    lat: 39.7392
+    lon: -104.9903
+    place: Denver
+    label: Safecast · Denver
+    aliases: [denver]
+  - kind: safecast
+    device_id: safecast-berlin
+    lat: 52.5200
+    lon: 13.4050
+    place: Berlin
+    label: Safecast · Berlin
+    aliases: [berlin, берлин]
+  - kind: safecast
+    device_id: safecast-paris
+    lat: 48.8566
+    lon: 2.3522
+    place: Paris
+    label: Safecast · Paris
+    aliases: [paris, париже]
+  - kind: safecast
+    device_id: safecast-seoul
+    lat: 37.5665
+    lon: 126.9780
+    place: Seoul
+    label: Safecast · Seoul
+    aliases: [seoul, сеул]
+  - kind: safecast
+    device_id: safecast-chernobyl
+    lat: 51.3890
+    lon: 30.0990
+    place: Chernobyl region
+    label: Safecast · Chernobyl region
+    aliases: [chernobyl, чернобыль]
+  - kind: safecast
+    device_id: safecast-melbourne
+    lat: -37.8136
+    lon: 144.9631
+    place: Melbourne
+    label: Safecast · Melbourne
+    aliases: [melbourne]
+    # AU bGeigie drive-grids are 2014-era — 30-day captured_after hides the rows.
+    params: {max_age_days: 0, distance_m: 500000}
+  - kind: safecast
+    device_id: safecast-adelaide
+    lat: -34.9285
+    lon: 138.6007
+    place: Adelaide
+    label: Safecast · Adelaide
+    aliases: [adelaide, "south australia"]
+    params: {max_age_days: 0, distance_m: 500000}
+  - kind: safecast
+    device_id: safecast-vancouver
+    lat: 49.2827
+    lon: -123.1207
+    place: Vancouver
+    label: Safecast · Vancouver
+    aliases: [vancouver]
+  - kind: safecast
+    device_id: safecast-honolulu
+    lat: 21.3069
+    lon: -157.8583
+    place: Honolulu
+    label: Safecast · Honolulu
+    aliases: [honolulu, hawaii]
+  - kind: safecast
+    device_id: safecast-bangkok
+    lat: 13.7563
+    lon: 100.5018
+    place: Bangkok
+    label: Safecast · Bangkok
+    aliases: [bangkok]
+  - kind: safecast
+    device_id: safecast-losangeles
+    lat: 34.0522
+    lon: -118.2437
+    place: Los Angeles
+    label: Safecast · Los Angeles
+    aliases: ["los angeles"]
+
+  # ── Tide (NOAA CO-OPS) — major US harbors ────────────────────────────────
+  - kind: noaa-tide
+    device_id: noaa-tide-sf
+    lat: 37.8063
+    lon: -122.4659
+    place: San Francisco
+    label: NOAA Tide · San Francisco
+    params: {station: "9414290"}
+  - kind: noaa-tide
+    device_id: noaa-tide-honolulu
+    lat: 21.3067
+    lon: -157.8670
+    place: Honolulu
+    label: NOAA Tide · Honolulu
+    params: {station: "1612340"}
+  - kind: noaa-tide
+    device_id: noaa-tide-miami
+    lat: 25.7314
+    lon: -80.1618
+    place: Virginia Key, Miami
+    label: NOAA Tide · Miami
+    params: {station: "8723214"}
+  - kind: noaa-tide
+    device_id: noaa-tide-seattle
+    lat: 47.6026
+    lon: -122.3393
+    place: Seattle
+    label: NOAA Tide · Seattle
+    params: {station: "9447130"}
+  - kind: noaa-tide
+    device_id: noaa-tide-la
+    lat: 33.7197
+    lon: -118.2728
+    place: Los Angeles
+    label: NOAA Tide · Los Angeles
+    params: {station: "9410660"}
+  - kind: noaa-tide
+    device_id: noaa-tide-baltimore
+    lat: 39.2669
+    lon: -76.5783
+    place: Baltimore
+    label: NOAA Tide · Baltimore
+    params: {station: "8574680"}
+  - kind: noaa-tide
+    device_id: noaa-tide-norfolk
+    lat: 36.9467
+    lon: -76.3300
+    place: Sewells Point, Norfolk
+    label: NOAA Tide · Norfolk
+    params: {station: "8638610"}
+  - kind: noaa-tide
+    device_id: noaa-tide-newport
+    lat: 41.5043
+    lon: -71.3261
+    place: Newport, RI
+    label: NOAA Tide · Newport
+    params: {station: "8452660"}
+
+  # ── Rivers (USGS NWIS) ───────────────────────────────────────────────────
+  - kind: usgs-river
+    device_id: usgs-river-colorado
+    lat: 36.8642
+    lon: -111.5879
+    place: Colorado River · Lees Ferry
+    label: USGS River · Colorado / Lees Ferry
+    params: {usgs_site: "09380000"}
+  - kind: usgs-river
+    device_id: usgs-river-sacramento
+    lat: 38.4560
+    lon: -121.5000
+    place: Sacramento River
+    label: USGS River · Sacramento
+    params: {usgs_site: "11447650"}
+  - kind: usgs-river
+    device_id: usgs-river-mississippi-br
+    lat: 30.4457
+    lon: -91.1915
+    place: Mississippi · Baton Rouge
+    label: USGS River · Mississippi / Baton Rouge
+    params: {usgs_site: "07374000"}
+  - kind: usgs-river
+    device_id: usgs-river-willamette
+    lat: 45.5170
+    lon: -122.6690
+    place: Willamette · Portland
+    label: USGS River · Willamette / Portland
+    params: {usgs_site: "14211720"}
+  - kind: usgs-river
+    device_id: usgs-river-missouri
+    lat: 38.7097
+    lon: -91.4385
+    place: Missouri · Hermann
+    label: USGS River · Missouri / Hermann
+    params: {usgs_site: "06935965"}
+  - kind: usgs-river
+    device_id: usgs-river-mississippi-stpaul
+    lat: 44.9444
+    lon: -93.0875
+    place: Mississippi · St. Paul
+    label: USGS River · Mississippi / St. Paul
+    params: {usgs_site: "05330000"}
+  - kind: usgs-river
+    device_id: usgs-river-kansas
+    lat: 39.1120
+    lon: -94.6550
+    place: Kansas River
+    label: USGS River · Kansas
+    params: {usgs_site: "06892350"}
+
+  # ── Geomagnetism — official USGS observatory network ─────────────────────
+  # Boulder (BOU) is the primary usgs-geomag-01 relay registered in code.
+  # These rows complete the 14-station USGS network; each device calls the
+  # official USGS F-series API and becomes LIVE only after a usable reading.
+  - kind: usgs-geomag
+    device_id: usgs-geomag-brw
+    lat: 71.322
+    lon: -156.622
+    place: Barrow, Alaska · BRW
+    label: USGS Geomag · Barrow (BRW)
+    aliases: [barrow, brw]
+    params: {observatory: BRW}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-bsl
+    lat: 30.350
+    lon: -89.635
+    place: Stennis Space Center, Mississippi · BSL
+    label: USGS Geomag · Stennis (BSL)
+    aliases: [stennis, bsl]
+    params: {observatory: BSL}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-cmo
+    lat: 64.874
+    lon: -147.860
+    place: College, Alaska · CMO
+    label: USGS Geomag · College (CMO)
+    aliases: [college, fairbanks, cmo]
+    params: {observatory: CMO}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-ded
+    lat: 70.355
+    lon: -148.793
+    place: Deadhorse, Alaska · DED
+    label: USGS Geomag · Deadhorse (DED)
+    aliases: [deadhorse, ded]
+    params: {observatory: DED}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-frd
+    lat: 38.205
+    lon: -77.373
+    place: Fredericksburg, Virginia · FRD
+    label: USGS Geomag · Fredericksburg (FRD)
+    aliases: [fredericksburg, frd]
+    params: {observatory: FRD}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-frn
+    lat: 37.091
+    lon: -119.718
+    place: Fresno, California · FRN
+    label: USGS Geomag · Fresno (FRN)
+    aliases: [fresno, frn]
+    params: {observatory: FRN}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-gua
+    lat: 13.588
+    lon: 144.867
+    place: Guam · GUA
+    label: USGS Geomag · Guam (GUA)
+    aliases: [guam, gua]
+    params: {observatory: GUA}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-hon
+    lat: 21.316
+    lon: -158.000
+    place: Honolulu, Hawaii · HON
+    label: USGS Geomag · Honolulu (HON)
+    aliases: [honolulu, hawaii, hon]
+    params: {observatory: HON}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-new
+    lat: 48.265
+    lon: -117.122
+    place: Newport, Washington · NEW
+    label: USGS Geomag · Newport (NEW)
+    aliases: [newport, new]
+    params: {observatory: NEW}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-shu
+    lat: 55.348
+    lon: -160.462
+    place: Shumagin, Alaska · SHU
+    label: USGS Geomag · Shumagin (SHU)
+    aliases: [shumagin, shu]
+    params: {observatory: SHU}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-sit
+    lat: 57.058
+    lon: -135.325
+    place: Sitka, Alaska · SIT
+    label: USGS Geomag · Sitka (SIT)
+    aliases: [sitka, sit]
+    params: {observatory: SIT}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-sjg
+    lat: 18.113
+    lon: -66.151
+    place: San Juan, Puerto Rico · SJG
+    label: USGS Geomag · San Juan (SJG)
+    aliases: ["san juan", "puerto rico", sjg]
+    params: {observatory: SJG}
+  - kind: usgs-geomag
+    device_id: usgs-geomag-tuc
+    lat: 32.174
+    lon: -110.733
+    place: Tucson, Arizona · TUC
+    label: USGS Geomag · Tucson (TUC)
+    aliases: [tucson, tuc]
+    params: {observatory: TUC}
+
+  # ── Marine — NDBC buoys ──────────────────────────────────────────────────
+  - kind: ndbc-buoy
+    device_id: ndbc-monterey
+    lat: 36.7850
+    lon: -122.3980
+    place: Monterey Bay
+    label: NDBC · Monterey 46042
+    params: {station: "46042"}
+  - kind: ndbc-buoy
+    device_id: ndbc-sf
+    lat: 37.7590
+    lon: -122.8330
+    place: San Francisco Bar
+    label: NDBC · SF 46026
+    params: {station: "46026"}
+  - kind: ndbc-buoy
+    device_id: ndbc-florida
+    lat: 28.5180
+    lon: -80.1660
+    place: Cape Canaveral offshore
+    label: NDBC · Florida 41009
+    params: {station: "41009"}
+  - kind: ndbc-buoy
+    device_id: ndbc-hawaii
+    lat: 23.4450
+    lon: -162.2800
+    place: NW Hawaii
+    label: NDBC · Hawaii 51001
+    params: {station: "51001"}
+  - kind: ndbc-buoy
+    device_id: ndbc-boston
+    lat: 42.3460
+    lon: -70.6510
+    place: Boston Harbor approaches
+    label: NDBC · Boston 44013
+    params: {station: "44013"}
+  - kind: ndbc-buoy
+    device_id: ndbc-gulf
+    lat: 29.2120
+    lon: -88.2070
+    place: Gulf of Mexico
+    label: NDBC · Gulf 42040
+    params: {station: "42040"}
+
+  # ── Marine — Open-Meteo coastal anchors ───────────────────────────────────
+  - kind: open-meteo-marine
+    device_id: om-marine-tokyo
+    lat: 35.45
+    lon: 139.85
+    place: Tokyo Bay
+    label: Open-Meteo Marine · Tokyo Bay
+  - kind: open-meteo-marine
+    device_id: om-marine-singapore
+    lat: 1.26
+    lon: 103.85
+    place: Singapore Strait
+    label: Open-Meteo Marine · Singapore
+  - kind: open-meteo-marine
+    device_id: om-marine-sydney
+    lat: -33.85
+    lon: 151.28
+    place: Sydney Harbour
+    label: Open-Meteo Marine · Sydney
+  - kind: open-meteo-marine
+    device_id: om-marine-miami
+    lat: 25.76
+    lon: -80.13
+    place: Miami
+    label: Open-Meteo Marine · Miami
+  - kind: open-meteo-marine
+    device_id: om-marine-rotterdam
+    lat: 51.95
+    lon: 4.05
+    place: Rotterdam
+    label: Open-Meteo Marine · Rotterdam
+  - kind: open-meteo-marine
+    device_id: om-marine-seattle
+    lat: 47.60
+    lon: -122.40
+    place: Puget Sound
+    label: Open-Meteo Marine · Seattle
+  - kind: open-meteo-marine
+    device_id: om-marine-shanghai
+    lat: 31.23
+    lon: 121.55
+    place: Shanghai
+    label: Open-Meteo Marine · Shanghai
+
+  # ── Extra NWS stations (weather densify beyond OM mesh) ──────────────────
+  - kind: nws
+    device_id: nws-ksfo
+    lat: 37.6196
+    lon: -122.3748
+    place: SFO Airport
+    label: NWS · KSFO
+    params: {station: KSFO}
+  - kind: nws
+    device_id: nws-klax
+    lat: 33.9425
+    lon: -118.4081
+    place: LAX Airport
+    label: NWS · KLAX
+    params: {station: KLAX}
+  - kind: nws
+    device_id: nws-kmia
+    lat: 25.7959
+    lon: -80.2870
+    place: Miami Airport
+    label: NWS · KMIA
+    params: {station: KMIA}
+  - kind: nws
+    device_id: nws-kord
+    lat: 41.9742
+    lon: -87.9073
+    place: Chicago O'Hare
+    label: NWS · KORD
+    params: {station: KORD}
+  - kind: nws
+    device_id: nws-ksea
+    lat: 47.4502
+    lon: -122.3088
+    place: Seattle-Tacoma
+    label: NWS · KSEA
+    params: {station: KSEA}
+  - kind: nws
+    device_id: nws-kden
+    lat: 39.8561
+    lon: -104.6737
+    place: Denver Airport
+    label: NWS · KDEN
+    params: {station: KDEN}
