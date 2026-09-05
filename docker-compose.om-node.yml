@@ -1,0 +1,102 @@
+# Self-hosted Open-Meteo — the API + its data sync. ONE definition, used twice:
+#
+#   local to GAIA (same host):
+#     docker compose -f gaia/docker-compose.yml \
+#                    -f gaia/docker-compose.om-node.yml \
+#                    -f gaia/docker-compose.om-selfhost.yml up -d
+#   standalone on a big-disk host, for GAIA to pull over the network:
+#     docker compose -f gaia/docker-compose.om-node.yml up -d
+#     (scripts/deploy_om_node.sh does this, then puts TLS + a bearer in front)
+#
+# This file is valid ON ITS OWN — that is the point of splitting it out of the
+# om-selfhost overlay, which only rewires gaia-backend and cannot stand alone.
+#
+# WHY IT EXISTS
+#   Open-Meteo's DATA is CC BY 4.0 and safe to resell with attribution. Its HOSTED
+#   FREE endpoint is not: "You may only use the free API services for non-commercial
+#   purposes" (https://open-meteo.com/en/terms). Their server is AGPLv3 and
+#   self-hostable, so an operator who SELLS om-* readings runs their own instance.
+#
+# LICENCE BOUNDARY — this and docker-compose.om-selfhost.yml are the only files in
+# this MIT repo that touch AGPL code, and only by IMAGE REFERENCE.
+#   * We vendor no Open-Meteo source; the image is pulled from upstream at deploy.
+#   * We run it UNMODIFIED. AGPLv3 §13 obliges offering Corresponding Source of a
+#     MODIFIED version to users interacting with it remotely; unmodified upstream
+#     reached over HTTP keeps GAIA a separate work. Patch it → publish the patch.
+#   * No `ports:` here. Nothing is exposed by this file. deploy_om_node.sh puts an
+#     nginx edge in front that REQUIRES a bearer, so no third party ever interacts
+#     with the AGPL program.
+#   Keep all three and our MIT licence is unaffected.
+#
+# DISK — the real cost. `sync` writes weather-model data to the volume: a narrow
+# variable set is ~32-48 GB; comprehensive forecast data is 150 GB+ and wants NVMe.
+# Air quality and marine need their OWN models listed in GAIA_OM_SYNC_MODELS, or
+# those endpoints 404 and their GAIA pins stay offline.
+#
+# TEMPORAL RESOLUTION IS A TRAP, and it cost a deploy to find. `ecmwf_ifs025` alone is
+# 3-hourly (`temporal_resolution_seconds: 10800` in its own static/meta.json), so
+# /v1/forecast?current=... returns `null` for every field at any time that is not on a
+# 3-hour boundary — the API answers 200 with a well-formed body and no values, and GAIA
+# then marks every om-* pin offline. The hosted API never shows this because it blends
+# several models. Keep at least one HOURLY model (dwd_icon) in the set, and note that
+# `sync` SILENTLY SKIPS variable names a model does not carry: check that every variable
+# you asked for actually appears under /app/data/<model>/ before trusting the instance.
+
+services:
+  open-meteo:
+    # Unmodified upstream image, by reference. Do not fork into this repo.
+    image: ${GAIA_OM_IMAGE:-ghcr.io/open-meteo/open-meteo:latest}
+    command: ["serve"]
+    volumes:
+      - open_meteo_data:/app/data
+    restart: unless-stopped
+    networks:
+      - default
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- 'http://127.0.0.1:8080/v1/forecast?latitude=52.52&longitude=13.41&current=temperature_2m' >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  open-meteo-sync:
+    image: ${GAIA_OM_IMAGE:-ghcr.io/open-meteo/open-meteo:latest}
+    # Downloads the model runs the API serves. Without this the API answers 404 for
+    # every variable — which is why both deploy scripts smoke-test a real reading
+    # instead of trusting the container's health.
+    command:
+      - sync
+      - ${GAIA_OM_SYNC_MODELS:-dwd_icon,ecmwf_ifs025}
+      # RAW model variables, not the derived names GAIA asks the API for. `sync` carries
+      # only what a model actually stores and skips the rest IN SILENCE, so asking for
+      # surface_pressure / wind_speed_10m downloaded nothing and those two fields came
+      # back null on a 200. Open-Meteo derives surface_pressure from pressure_msl (with
+      # HSURF) and wind_speed_10m from the u/v components — sync the inputs.
+      - ${GAIA_OM_SYNC_VARIABLES:-temperature_2m,relative_humidity_2m,pressure_msl,wind_u_component_10m,wind_v_component_10m}
+      - --past-days
+      - ${GAIA_OM_SYNC_PAST_DAYS:-2}
+      # Poll inside ONE long-lived process. Without this `sync` exits after each run
+      # and the restart policy becomes the scheduler — 21k restarts in two weeks, and
+      # `docker ps` reads "Restarting" forever, so a genuine crash loop is invisible.
+      # Up = syncing, Restarting = actually broken.
+      - --repeat-interval
+      - ${GAIA_OM_SYNC_REPEAT_MIN:-60}
+      # "Actually perform file delete on cleanup" — without it retention is certainly
+      # off. NOT PROVEN SUFFICIENT: superseded chunks had leaked 1.9 GB by 2026-08-28
+      # (dwd_icon chunk_1961, ecmwf chunk_1590 — both 8-11 days past the 2-day window),
+      # and turning this flag on swept exactly nothing. Those ten files were removed by
+      # hand; the flag stays because its absence would guarantee the leak.
+      # NEXT PROOF POINT: dwd_icon chunk_1962 covers through 2026-08-28 07:00, so it
+      # falls out of the window at 2026-08-30 07:00 UTC. If it is still on the volume
+      # after that, this flag does not sweep and the retention needs its own timer.
+      #   docker run --rm -v gaia_open_meteo_data:/d … find /d -name 'chunk_1962.om'
+      - --execute
+    # Now a real crash-recovery policy, not the scheduler.
+    restart: unless-stopped
+    volumes:
+      - open_meteo_data:/app/data
+    networks:
+      - default
+
+volumes:
+  open_meteo_data:

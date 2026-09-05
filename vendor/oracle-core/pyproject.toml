@@ -1,0 +1,72 @@
+[project]
+# `aimarket-oracle-core`, NOT `oracle-core`. The short name belongs to somebody else on
+# PyPI — an unrelated "personal prediction engine" that happens to install the same
+# top-level `oracle_core` module. Every oracle here declared `dependencies =
+# ["oracle-core"]` unpinned, so `pip install oracles/chronos` in a clean environment
+# resolved that name from the index and installed a stranger's package (plus flask,
+# pandas and scikit-learn) instead of this one, ending in
+# `ImportError: cannot import name 'Capability' from 'oracle_core'`. Verified 2026-07-28.
+# The family image survived only because it installs core and all oracles in one pip
+# invocation, where the local project satisfies the requirement before the index is
+# consulted. Do not shorten this name back.
+name = "aimarket-oracle-core"
+# 0.3.0, not 0.2.1: `Capability` gained four fields (free_tier_max, cost_ms,
+# cpu_budget_ms_per_min, global_cpu_budget_ms_per_min), `Protocol.invoke` gained a `paid`
+# keyword, `RateLimiter.allow` takes a cost, and `oracle_core.tiers` is new public API.
+# 0.2.0 is already on PyPI, and a capability constructed with any of the new fields raises
+# TypeError against it — so chronos and aestus, the two that use them, floor at >=0.3. The
+# other 15 stay at >=0.2 deliberately: a floor nothing needs is a floor that misleads.
+version = "0.3.0"
+description = "Shared AIMarket v2 infrastructure for the oracle family"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.32.0",
+    "httpx>=0.27.0",
+    "pydantic>=2.9.0",
+    "cryptography>=44.0.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.3.0", "pytest-asyncio>=0.24.0", "httpx>=0.27.0"]
+pqc = ["dilithium-py>=1.4.0"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["oracle_core"]
+
+# An ALLOW-list, and deliberately not a deny-list. With no sdist target declared, hatchling
+# falls back to "everything not matched by a discovered .gitignore" — and it walks UP for that
+# file. Inside this monorepo it finds oracles/.gitignore (whose `**/data/` rule is what kept
+# key material out), so builds here looked clean. Copy the package anywhere that ancestor is
+# not reachable — a CI checkout of one subdirectory, a Docker build context, an rsync'd
+# release dir — and the rule vanishes with it. Reproduced: an out-of-tree sdist build of
+# oracles/oracles/chronos packaged data/chronos_signing_key, the oracle's Ed25519 private key,
+# in plaintext. A signing key in a published tarball means anyone can forge that oracle's
+# receipts, which is the whole trust story of this family.
+#
+# An include list cannot be defeated by a missing file. It also stops the sdist shipping
+# oracles/.gitignore itself, which it did — a map of where every secret in the repo lives.
+[tool.hatch.build.targets.sdist]
+include = [
+    "/oracle_core",
+    "/tests",
+    "/docs",
+    "/README.md",
+    "/LICENSE",
+    "/pyproject.toml",
+]
+# hatchling adds .gitignore to an sdist on its own, regardless of `include`, so the allow-list
+# alone does not keep it out. It is not secret, but it is a map of where the secrets in a
+# private monorepo live, and it has no business on PyPI. Caught by the publish-time gate in
+# scripts/publish_pypi.sh, which is the point of having a gate that does not trust the config.
+exclude = ["/.gitignore"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]

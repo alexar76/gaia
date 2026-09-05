@@ -1,0 +1,122 @@
+# GAIA — physical-world oracle gateway. Deployed on the oracle host
+# (oracles.modelmarket.dev) alongside the oracle family, published on its own domain
+# iot.modelmarket.dev through the nginx TLS edge (see
+# deploy/nginx/iot.modelmarket.dev.conf). Both containers bind LOOPBACK only —
+# never 0.0.0.0 — so nothing is exposed on a raw port; nginx is the only edge.
+#
+# Build from the MONOREPO ROOT (the backend needs oracle-core in context):
+#     docker compose -f gaia/docker-compose.yml up -d --build
+services:
+  gaia-backend:
+    build:
+      context: ..
+      dockerfile: gaia/Dockerfile
+    environment:
+      GAIA_PORT: "9320"
+      GAIA_PUBLIC_URL: ${GAIA_PUBLIC_URL:-https://iot.modelmarket.dev}
+      GAIA_CORS_ORIGINS: ${GAIA_CORS_ORIGINS:-https://iot.modelmarket.dev}
+      # Public demo: crypto master switch OFF → invokes served free (no escrow
+      # debits), signing/verify/WoT all still work. Set AIFACTORY_CRYPTO_ENABLED=1
+      # only when wiring real settlement.
+      AIFACTORY_CRYPTO_ENABLED: ${AIFACTORY_CRYPTO_ENABLED:-0}
+      # Simulation control plane is NOT exposed on the public edge (fail-closed):
+      # /sim/* is only for a local/dev instance. Flip to 1 behind auth if needed.
+      GAIA_SIM_CONTROL: ${GAIA_SIM_CONTROL:-0}
+      # Fail-closed convention for the whole factory stack; also gates sim auto-on.
+      AIFACTORY_PROD: ${AIFACTORY_PROD:-1}
+      # Required whenever /sim/* is mounted (defense-in-depth even if CONTROL=0 today).
+      GAIA_SIM_TOKEN: ${GAIA_SIM_TOKEN:-}
+      # Opt-in LIVE relays (NWS / Open-Meteo / UK carbon / USGS / NOAA tides /
+      # openSenseMap / SensorThings / optional OpenAQ) alongside simulators.
+      # Upstream outages → DeviceOffline (503), never a debit. Hosts allowlisted.
+      GAIA_ENABLE_LIVE: ${GAIA_ENABLE_LIVE:-1}
+      GAIA_NWS_STATION: ${GAIA_NWS_STATION:-KNYC}
+      GAIA_OSM_BOX_ID: ${GAIA_OSM_BOX_ID:-5fcc05a9fab469001c59ebd8}
+      GAIA_STA_DATASTREAM: ${GAIA_STA_DATASTREAM:-1}
+      GAIA_OM_LAT: ${GAIA_OM_LAT:-52.52}
+      GAIA_OM_LON: ${GAIA_OM_LON:-13.41}
+      # Open-Meteo origin. Default = their hosted free API, whose ToS is
+      # NON-COMMERCIAL. With payments on (AIFACTORY_CRYPTO_ENABLED=1) GAIA refuses
+      # to boot om-* relays against it — run your own instance instead:
+      #   docker compose -f gaia/docker-compose.yml \
+      #                  -f gaia/docker-compose.om-selfhost.yml up -d
+      # (deploy_gaia.sh adds that overlay by default). GAIA_OM_API_KEY is for the
+      # dedicated customer endpoint that comes with a paid Open-Meteo plan.
+      GAIA_OM_BASE_URL: ${GAIA_OM_BASE_URL:-}
+      GAIA_OM_AQ_BASE_URL: ${GAIA_OM_AQ_BASE_URL:-}
+      GAIA_OM_MARINE_BASE_URL: ${GAIA_OM_MARINE_BASE_URL:-}
+      GAIA_OM_API_KEY: ${GAIA_OM_API_KEY:-}
+      GAIA_OM_ALLOW_HOSTED_COMMERCIAL: ${GAIA_OM_ALLOW_HOSTED_COMMERCIAL:-0}
+      # Bearer for an operator-run instance on ANOTHER host (big-disk node). Sent
+      # only to the configured origin — never to open-meteo.com.
+      GAIA_OM_AUTH_TOKEN: ${GAIA_OM_AUTH_TOKEN:-}
+      GAIA_NOAA_TIDE_STATION: ${GAIA_NOAA_TIDE_STATION:-8518750}
+      # Optional: free key from https://explore.openaq.org → enables openaq-01
+      GAIA_OPENAQ_API_KEY: ${GAIA_OPENAQ_API_KEY:-}
+      GAIA_OPENAQ_LOCATION_ID: ${GAIA_OPENAQ_LOCATION_ID:-2178}
+      # BarentsWatch AIS (NLOD). Values live in host .env — never commit them.
+      GAIA_BARENTSWATCH_TOKEN: ${GAIA_BARENTSWATCH_TOKEN:-}
+      GAIA_BARENTSWATCH_CLIENT_ID: ${GAIA_BARENTSWATCH_CLIENT_ID:-}
+      GAIA_BARENTSWATCH_CLIENT_SECRET: ${GAIA_BARENTSWATCH_CLIENT_SECRET:-}
+      # P4 environmental layers. Earthdata enables IMERG; one CDSE OAuth client
+      # enables both CLMS SWI and Sentinel-3 SLSTR L2 LST.
+      GAIA_EARTHDATA_TOKEN: ${GAIA_EARTHDATA_TOKEN:-}
+      GAIA_CDSE_CLIENT_ID: ${GAIA_CDSE_CLIENT_ID:-}
+      GAIA_CDSE_CLIENT_SECRET: ${GAIA_CDSE_CLIENT_SECRET:-}
+      GAIA_HMS_SMOKE_ENABLED: ${GAIA_HMS_SMOKE_ENABLED:-1}
+      GAIA_USGS_WQ_ENABLED: ${GAIA_USGS_WQ_ENABLED:-1}
+      GAIA_DART_ENABLED: ${GAIA_DART_ENABLED:-1}
+      GAIA_IMERG_ENABLED: ${GAIA_IMERG_ENABLED:-1}
+      GAIA_NEXRAD_STATUS_ENABLED: ${GAIA_NEXRAD_STATUS_ENABLED:-1}
+      GAIA_CAMS_ENABLED: ${GAIA_CAMS_ENABLED:-1}
+      GAIA_RADNET_ENABLED: ${GAIA_RADNET_ENABLED:-1}
+      GAIA_COPERNICUS_SOIL_ENABLED: ${GAIA_COPERNICUS_SOIL_ENABLED:-1}
+      GAIA_POWER_SOLAR_ENABLED: ${GAIA_POWER_SOLAR_ENABLED:-1}
+      GAIA_NOHRSC_SNOW_ENABLED: ${GAIA_NOHRSC_SNOW_ENABLED:-1}
+      GAIA_NSIDC_ICE_ENABLED: ${GAIA_NSIDC_ICE_ENABLED:-1}
+      GAIA_SENTINEL3_LST_ENABLED: ${GAIA_SENTINEL3_LST_ENABLED:-1}
+      # FIRMS: collect up to this many ranked hotspots, deliver in packets.
+      GAIA_FIRMS_COLLECT_MAX: ${GAIA_FIRMS_COLLECT_MAX:-250000}
+      # Official GDAC active-float index: hourly refresh, persisted across
+      # restarts so a transient upstream outage never erases the world layer.
+      GAIA_ARGO_DIRECTORY_TTL_S: ${GAIA_ARGO_DIRECTORY_TTL_S:-3600}
+      GAIA_ARGO_CACHE_PATH: ${GAIA_ARGO_CACHE_PATH:-/data/argo_active_floats.json}
+      # Official EUREF EPN inventory + delivery-path integrity (CC BY 4.0).
+      # Persist it: a short source outage must not erase thousands of map points.
+      GAIA_GNSS_EUREF_ENABLED: ${GAIA_GNSS_EUREF_ENABLED:-1}
+      GAIA_GNSS_DIRECTORY_TTL_S: ${GAIA_GNSS_DIRECTORY_TTL_S:-900}
+      GAIA_GNSS_CACHE_PATH: ${GAIA_GNSS_CACHE_PATH:-/data/gnss/euref-stations.json}
+      GAIA_GNSS_GA_ENABLED: ${GAIA_GNSS_GA_ENABLED:-1}
+      GAIA_GNSS_GA_TTL_S: ${GAIA_GNSS_GA_TTL_S:-21600}
+      GAIA_GNSS_GA_CACHE_PATH: ${GAIA_GNSS_GA_CACHE_PATH:-/data/gnss/ga-stations.json}
+      # Persist per-device + gateway signing keys across restarts.
+      GAIA_KEY_DIR: /data/devices
+      GAIA_SIGNING_KEY_PATH: /data/gaia_signing_key
+    volumes:
+      - gaia-keys:/data
+    ports:
+      # Loopback only — published via nginx (TLS + per-IP limit). A 0.0.0.0 bind
+      # would insert a Docker DNAT rule ahead of UFW and expose the raw port.
+      - "127.0.0.1:9320:9320"
+    restart: unless-stopped
+    networks:
+      - default
+      - ecosystem
+
+  gaia-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "127.0.0.1:5185:80"
+    restart: unless-stopped
+
+volumes:
+  gaia-keys:
+
+# Shared ecosystem network (same one the hub / metis / oracles join) so a
+# future live-settlement wiring can reach them by service name. Created by the
+# hub/oracles stack; `external: true` means GAIA never owns or recreates it.
+networks:
+  ecosystem:
+    external: true
