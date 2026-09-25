@@ -1,0 +1,238 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 440" width="1200" height="440" role="img" aria-labelledby="t d">
+  <title id="t">GAIA — physical-world oracle gateway</title>
+  <desc id="d">A reading leaves a physical site, is signed at the source with Ed25519, sold as an AIMarket v2 capability, and checked by a Metis-envelope /v1/verify: plausible pays the provider, implausible refunds the buyer.</desc>
+
+  <defs>
+    <linearGradient id="void" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#040c12"/>
+      <stop offset="45%" stop-color="#061018"/>
+      <stop offset="100%" stop-color="#071713"/>
+    </linearGradient>
+    <radialGradient id="gTerra" cx="14%" cy="86%" r="52%">
+      <stop offset="0%" stop-color="#2dd4a8" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#2dd4a8" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gSky" cx="86%" cy="10%" r="46%">
+      <stop offset="0%" stop-color="#5ec8ff" stop-opacity="0.18"/>
+      <stop offset="100%" stop-color="#5ec8ff" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="gSoil" cx="62%" cy="104%" r="42%">
+      <stop offset="0%" stop-color="#c4a574" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#c4a574" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="orb" cx="34%" cy="28%" r="72%">
+      <stop offset="0%" stop-color="#dffcf0"/>
+      <stop offset="46%" stop-color="#2dd4a8"/>
+      <stop offset="100%" stop-color="#0a4a3c"/>
+    </radialGradient>
+    <radialGradient id="earth" cx="34%" cy="26%" r="78%">
+      <stop offset="0%" stop-color="#dff6ee" stop-opacity="0.30"/>
+      <stop offset="30%" stop-color="#1a6b55" stop-opacity="0.85"/>
+      <stop offset="72%" stop-color="#0d3d38" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#061820" stop-opacity="0.9"/>
+    </radialGradient>
+    <linearGradient id="panel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#0e1e26"/>
+      <stop offset="100%" stop-color="#091419"/>
+    </linearGradient>
+    <linearGradient id="ground" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2dd4a8" stop-opacity="0.16"/>
+      <stop offset="100%" stop-color="#2dd4a8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="wire" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2dd4a8" stop-opacity="0.15"/>
+      <stop offset="50%" stop-color="#2dd4a8" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#5ec8ff" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="wirePay" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#2dd4a8" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#2dd4a8" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="wireRef" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#c4a574" stop-opacity="0.75"/>
+      <stop offset="100%" stop-color="#c4a574" stop-opacity="0.2"/>
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <clipPath id="frame"><rect x="0" y="0" width="1200" height="440" rx="18"/></clipPath>
+    <linearGradient id="fadeR" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="62%" stop-color="#fff" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#fff" stop-opacity="0"/>
+    </linearGradient>
+    <mask id="siteFade"><rect x="-20" y="300" width="420" height="140" fill="url(#fadeR)"/></mask>
+  </defs>
+
+  <style>
+    .h    { font-family: "Syne","Inter","Segoe UI",Helvetica,Arial,sans-serif; font-weight: 800; }
+    .b    { font-family: "DM Sans","Inter","Segoe UI",Helvetica,Arial,sans-serif; font-weight: 500; }
+    .m    { font-family: "JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace; }
+    .ink  { fill: #e8f4f0; }
+    .mut  { fill: #8fb3a8; }
+    .fnt  { fill: #5a7a70; }
+    .ter  { fill: #2dd4a8; }
+    .sky  { fill: #5ec8ff; }
+    .soil { fill: #c4a574; }
+    .step { font-size: 11px; letter-spacing: 2.6px; }
+    .flow { fill: none; stroke-linecap: round; stroke-width: 1.6; }
+  </style>
+
+  <g clip-path="url(#frame)">
+    <rect width="1200" height="440" fill="url(#void)"/>
+    <rect width="1200" height="440" fill="url(#gTerra)"/>
+    <rect width="1200" height="440" fill="url(#gSky)"/>
+    <rect width="1200" height="440" fill="url(#gSoil)"/>
+
+    <!-- planet, top right: the physical world the readings come from -->
+    <g opacity="0.4">
+      <circle cx="1204" cy="14" r="164" fill="url(#earth)"/>
+      <g fill="none" stroke="#2dd4a8" stroke-opacity="0.24" stroke-width="1">
+        <ellipse cx="1204" cy="14" rx="164" ry="56"/>
+        <ellipse cx="1204" cy="14" rx="164" ry="110"/>
+        <ellipse cx="1204" cy="14" rx="70"  ry="164"/>
+        <ellipse cx="1204" cy="14" rx="132" ry="164"/>
+      </g>
+      <circle cx="1204" cy="14" r="164" fill="none" stroke="#2dd4a8" stroke-opacity="0.34" stroke-width="1.2"/>
+      <g fill="#5ec8ff">
+        <circle cx="1128" cy="52" r="3"><animate attributeName="opacity" values="0.35;1;0.35" dur="3.4s" repeatCount="indefinite"/></circle>
+        <circle cx="1178" cy="128" r="2.6" fill="#2dd4a8"><animate attributeName="opacity" values="1;0.35;1" dur="4.1s" repeatCount="indefinite"/></circle>
+      </g>
+    </g>
+
+    <!-- masthead -->
+    <circle cx="68" cy="60" r="12" fill="url(#orb)" filter="url(#soft)">
+      <animate attributeName="r" values="12;13.4;12" dur="3.2s" repeatCount="indefinite"/>
+    </circle>
+    <text class="h ink" x="96" y="74" font-size="44" letter-spacing="7">GAIA</text>
+    <line x1="262" y1="40" x2="262" y2="78" stroke="#2dd4a8" stroke-opacity="0.28"/>
+    <text class="b mut" x="282" y="52" font-size="13" letter-spacing="3.4">PHYSICAL-WORLD ORACLE GATEWAY</text>
+    <text class="b fnt" x="282" y="74" font-size="13.5">Ed25519-attested readings · plausibility verify · pay-on-verified settlement</text>
+
+    <g transform="translate(1010,44)">
+      <rect x="0" y="0" width="132" height="26" rx="13" fill="#0e1e26" stroke="#2dd4a8" stroke-opacity="0.4"/>
+      <text class="m ter" x="66" y="17.5" font-size="11.5" text-anchor="middle" letter-spacing="1.4">AIMarket v2</text>
+      <text class="b fnt" x="66" y="46" font-size="11.5" text-anchor="middle" letter-spacing="1.6">THIRD ORACLE CLASS</text>
+    </g>
+
+    <!-- ① the site -->
+    <text class="b ter step" x="62" y="150">① PHYSICAL SITE</text>
+    <g mask="url(#siteFade)">
+      <path d="M-10 356 C 110 336, 240 346, 396 326 L396 440 L-10 440 Z" fill="url(#ground)"/>
+      <path d="M-10 356 C 110 336, 240 346, 396 326" fill="none" stroke="#2dd4a8" stroke-opacity="0.55" stroke-width="1.4"/>
+    </g>
+    <!-- twin weather stations sharing one site truth -->
+    <g stroke="#8fb3a8" stroke-opacity="0.55">
+      <line x1="104" y1="344" x2="104" y2="252"/>
+      <line x1="146" y1="342" x2="146" y2="266"/>
+      <line x1="238" y1="340" x2="238" y2="258"/>
+      <line x1="320" y1="332" x2="320" y2="272"/>
+    </g>
+    <g fill="#0e1e26" stroke="#2dd4a8" stroke-opacity="0.55">
+      <rect x="88"  y="232" width="32" height="20" rx="5"/>
+      <rect x="130" y="246" width="32" height="20" rx="5"/>
+      <rect x="222" y="238" width="32" height="20" rx="5"/>
+      <rect x="304" y="252" width="32" height="20" rx="5"/>
+    </g>
+    <g class="m ter" font-size="9" text-anchor="middle">
+      <text x="104" y="246">T·RH</text>
+      <text x="146" y="260">T·RH</text>
+      <text x="238" y="252">PM</text>
+      <text x="320" y="266">kW</text>
+    </g>
+    <g fill="#2dd4a8">
+      <circle cx="104" cy="226" r="3.6"><animate attributeName="opacity" values="1;0.3;1" dur="2.6s" repeatCount="indefinite"/></circle>
+      <circle cx="146" cy="240" r="3.6"><animate attributeName="opacity" values="0.3;1;0.3" dur="2.6s" repeatCount="indefinite"/></circle>
+      <circle cx="238" cy="232" r="3.6" fill="#5ec8ff"><animate attributeName="opacity" values="1;0.35;1" dur="3.4s" repeatCount="indefinite"/></circle>
+      <circle cx="320" cy="246" r="3.6" fill="#c4a574"><animate attributeName="opacity" values="0.4;1;0.4" dur="3.9s" repeatCount="indefinite"/></circle>
+    </g>
+    <!-- one truth under the twin pair: two stations, one physical site -->
+    <path d="M104 296 L104 310 L146 310 L146 300" fill="none" stroke="#2dd4a8" stroke-opacity="0.45" stroke-dasharray="3 3"/>
+    <rect x="72" y="316" width="106" height="18" rx="9" fill="#061018" stroke="#2dd4a8" stroke-opacity="0.22"/>
+    <text class="m fnt" x="125" y="329" font-size="9.5" text-anchor="middle">one site truth</text>
+    <text class="b mut" x="52" y="378" font-size="12">BME280 · SDS011 · SCD30 · Shelly-EM class</text>
+    <text class="b fnt" x="52" y="396" font-size="11.5">simulated fleet · real wire surface</text>
+
+    <!-- flow: site → signed reading -->
+    <g fill="none" stroke="#2dd4a8" stroke-opacity="0.22" stroke-width="1">
+      <path d="M104 226 C 152 252, 244 302, 344 286"/>
+      <path d="M146 240 C 200 272, 262 302, 344 286"/>
+      <path d="M238 232 C 272 262, 302 294, 344 286"/>
+      <path d="M320 246 C 332 258, 340 272, 344 286"/>
+    </g>
+    <circle cx="344" cy="286" r="2.8" fill="#2dd4a8"/>
+    <path class="flow" d="M348 286 C 382 286, 390 268, 416 268" stroke="url(#wire)" stroke-dasharray="7 7">
+      <animate attributeName="stroke-dashoffset" values="28;0" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- ② signed reading -->
+    <text class="b ter step" x="424" y="150">② ATTESTED AT THE SOURCE</text>
+    <g transform="translate(424,176)">
+      <rect x="0" y="0" width="300" height="150" rx="14" fill="url(#panel)" stroke="#2dd4a8" stroke-opacity="0.34"/>
+      <rect x="0" y="0" width="300" height="34" rx="14" fill="#2dd4a8" fill-opacity="0.07"/>
+      <text class="m mut" x="16" y="22" font-size="11">gaia.weather.read@v1</text>
+      <circle cx="278" cy="17" r="4" fill="#2dd4a8"><animate attributeName="opacity" values="1;0.25;1" dur="2s" repeatCount="indefinite"/></circle>
+      <g class="m">
+        <text x="16" y="60" font-size="12.5" fill="#e8f4f0">temp_c<tspan class="ter" dx="10">21.4</tspan></text>
+        <text x="16" y="82" font-size="12.5" fill="#e8f4f0">rh_pct<tspan class="ter" dx="10">58.2</tspan></text>
+        <text x="16" y="104" font-size="12.5" fill="#e8f4f0">site<tspan class="mut" dx="10">st-berlin-01</tspan></text>
+        <text x="16" y="126" font-size="12" fill="#5a7a70">sig<tspan class="soil" dx="10">ed25519:9f3c…a71</tspan></text>
+      </g>
+      <g transform="translate(246,96)">
+        <circle r="30" fill="none" stroke="#2dd4a8" stroke-opacity="0.35" stroke-width="1.2" stroke-dasharray="4 6">
+          <animateTransform attributeName="transform" type="rotate" from="0" to="360" dur="18s" repeatCount="indefinite"/>
+        </circle>
+        <circle r="21" fill="#0a1a1e" stroke="#2dd4a8" stroke-opacity="0.6"/>
+        <path d="M-7 3 a6 6 0 1 1 6 -6 h9 v3 h-3 v4 h-4 v-4 h-2 a6 6 0 0 1 -6 3 z" fill="#2dd4a8" transform="translate(-1,1)"/>
+      </g>
+      <text class="b fnt" x="216" y="140" font-size="10" text-anchor="middle">provider key</text>
+    </g>
+
+    <!-- flow: reading → verify -->
+    <path class="flow" d="M730 252 C 758 252, 760 240, 786 240" stroke="url(#wire)" stroke-dasharray="7 7">
+      <animate attributeName="stroke-dashoffset" values="28;0" dur="1.5s" repeatCount="indefinite"/>
+    </path>
+
+    <!-- ③ verify → settle -->
+    <text class="b ter step" x="794" y="150">③ VERIFIED, THEN PAID</text>
+    <g transform="translate(794,176)">
+      <rect x="0" y="0" width="172" height="128" rx="14" fill="url(#panel)" stroke="#5ec8ff" stroke-opacity="0.34"/>
+      <text class="m sky" x="16" y="26" font-size="12">/v1/verify</text>
+      <text class="b fnt" x="16" y="44" font-size="10.5">Metis envelope</text>
+      <g transform="translate(16,58)">
+        <rect x="0" y="0"  width="140" height="7" rx="3.5" fill="#2dd4a8" fill-opacity="0.18"/>
+        <rect x="0" y="0"  width="115" height="7" rx="3.5" fill="#2dd4a8"/>
+        <rect x="0" y="16" width="140" height="7" rx="3.5" fill="#2dd4a8" fill-opacity="0.18"/>
+        <rect x="0" y="16" width="88"  height="7" rx="3.5" fill="#2dd4a8"/>
+        <rect x="0" y="32" width="140" height="7" rx="3.5" fill="#c4a574" fill-opacity="0.18"/>
+        <rect x="0" y="32" width="49"  height="7" rx="3.5" fill="#c4a574"/>
+      </g>
+      <text class="m fnt" x="16" y="118" font-size="9.5">plausible · fresh · in range</text>
+    </g>
+
+    <path class="flow" d="M968 214 C 986 214, 986 200, 1006 200" stroke="url(#wirePay)" stroke-dasharray="6 6">
+      <animate attributeName="stroke-dashoffset" values="24;0" dur="1.3s" repeatCount="indefinite"/>
+    </path>
+    <path class="flow" d="M968 266 C 986 266, 986 282, 1006 282" stroke="url(#wireRef)" stroke-dasharray="6 6">
+      <animate attributeName="stroke-dashoffset" values="24;0" dur="2.1s" repeatCount="indefinite"/>
+    </path>
+
+    <g transform="translate(1006,182)">
+      <rect x="0" y="0" width="150" height="36" rx="18" fill="#2dd4a8" fill-opacity="0.1" stroke="#2dd4a8" stroke-opacity="0.55"/>
+      <path d="M18 18 l5 6 l9 -12" fill="none" stroke="#2dd4a8" stroke-width="2.2" stroke-linecap="round"/>
+      <text class="b ter" x="42" y="22.5" font-size="12.5">provider paid</text>
+    </g>
+    <g transform="translate(1006,264)">
+      <rect x="0" y="0" width="150" height="36" rx="18" fill="#c4a574" fill-opacity="0.09" stroke="#c4a574" stroke-opacity="0.5"/>
+      <path d="M17 12 l12 12 M29 12 l-12 12" fill="none" stroke="#c4a574" stroke-width="2.2" stroke-linecap="round"/>
+      <text class="b soil" x="42" y="22.5" font-size="12.5">buyer refunded</text>
+    </g>
+    <text class="b fnt" x="1081" y="328" font-size="11.5" text-anchor="middle">escrow settles on the verdict</text>
+
+    <!-- footer -->
+    <line x1="52" y1="412" x2="1148" y2="412" stroke="#2dd4a8" stroke-opacity="0.14"/>
+    <text class="m fnt" x="52" y="430" font-size="11">iot.modelmarket.dev · /ai-market/v2/manifest · /v1/verify · W3C WoT Thing Descriptions</text>
+    <text class="m mut" x="1148" y="430" font-size="11" text-anchor="end">an honest reading pays · a lying sensor refunds</text>
+  </g>
+</svg>
