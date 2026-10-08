@@ -1,0 +1,28 @@
+:root { color-scheme: dark; }
+* { box-sizing: border-box; }
+html, body, #root { margin: 0; height: 100%; background: #04030f; overflow: hidden; }
+body { font-family: ui-monospace, "SF Mono", Menlo, monospace; color: #cfe9ff; }
+
+/* Title overlay — top-left, matches the oracle-family cosmic chrome. */
+.overlay {
+  position: fixed; left: 30px; top: 24px; pointer-events: none; z-index: 10;
+  text-shadow: 0 0 18px rgba(110, 231, 255, 0.5);
+}
+.overlay h1 {
+  margin: 0; font-family: "Iowan Old Style", Georgia, serif; font-weight: 500;
+  font-size: 30px; letter-spacing: 0.4em;
+  background: linear-gradient(90deg, #6ee7ff, #a5b4fc, #c084fc);
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.overlay p { margin: 0.55em 0 0; font-size: 11px; letter-spacing: 0.2em; color: #8aa6c8; opacity: 0.85; }
+
+/* Bottom-left legend for the pay-on-verified verdict colours. */
+.legend {
+  position: fixed; left: 30px; bottom: 24px; z-index: 10; pointer-events: none;
+  display: flex; flex-direction: column; gap: 6px;
+  font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: #8aa6c8;
+}
+.legend .row { display: flex; align-items: center; gap: 8px; }
+.legend .dot { width: 8px; height: 8px; border-radius: 50%; box-shadow: 0 0 10px currentColor; }
+.legend .capture { color: #22c55e; }
+.legend .refund { color: #ef4444; }

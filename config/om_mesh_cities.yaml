@@ -1,0 +1,265 @@
+# Open-Meteo city mesh — single source for GAIA devices + ATLAS pins / Analyst.
+#
+# Canonical copy: gaia/config/om_mesh_cities.yaml
+# Mirror:         atlas/config/om_mesh_cities.yaml  (must be identical — CI + sync script)
+#
+# Add a city: edit THIS file → run ./scripts/sync_om_mesh_catalog.sh → redeploy GAIA + ATLAS.
+# Full recipe: docs/add-gaia-atlas-sensor.md
+#
+# Terms: docs/localization-glossary.md (mesh, pin, LIVE, SIM, sensor, relay, device_id).
+
+version: 1
+
+cities:
+  - slug: ottawa
+    place: Ottawa
+    lat: 45.4215
+    lon: -75.6972
+    aliases: [ottawa, оттава, "canada capital", "канада столиц"]
+  - slug: delhi
+    place: New Delhi
+    lat: 28.6139
+    lon: 77.2090
+    aliases: [delhi, "new delhi", нью-дели, "нью дели", дели, नई दिल्ली, 新德里]
+  - slug: tokyo
+    place: Tokyo
+    lat: 35.6762
+    lon: 139.6503
+    aliases: [tokyo, tokio, токио, 東京, 东京]
+  - slug: sydney
+    place: Sydney
+    lat: -33.8688
+    lon: 151.2093
+    aliases: [sydney, сидней, 悉尼]
+  - slug: saopaulo
+    place: São Paulo
+    lat: -23.5505
+    lon: -46.6333
+    aliases: ["sao paulo", "são paulo", "сао паулу", сан-паулу, 圣保罗]
+  - slug: lagos
+    place: Lagos
+    lat: 6.5244
+    lon: 3.3792
+    aliases: [lagos, лагос]
+  - slug: cairo
+    place: Cairo
+    lat: 30.0444
+    lon: 31.2357
+    aliases: [cairo, каир, القاهرة, 开罗]
+  - slug: capetown
+    place: Cape Town
+    lat: -33.9249
+    lon: 18.4241
+    aliases: ["cape town", кейптаун, 开普敦]
+  - slug: singapore
+    place: Singapore
+    lat: 1.3521
+    lon: 103.8198
+    aliases: [singapore, сингапур, 新加坡]
+  - slug: dubai
+    place: Dubai
+    lat: 25.2048
+    lon: 55.2708
+    aliases: [dubai, дубай, دبي, 迪拜]
+  - slug: losangeles
+    place: Los Angeles
+    lat: 34.0522
+    lon: -118.2437
+    # No bare "la": 2-letter aliases hijack Analyst matching.
+    aliases: ["los angeles", лос-анджелес, "лос анджелес", 洛杉矶]
+  - slug: mexicocity
+    place: Mexico City
+    lat: 19.4326
+    lon: -99.1332
+    aliases: ["mexico city", мехико, "ciudad de méxico", 墨西哥城]
+  - slug: moscow
+    place: Moscow
+    lat: 55.7558
+    lon: 37.6173
+    aliases: [moscow, москва, 莫斯科]
+  - slug: paris
+    place: Paris
+    lat: 48.8566
+    lon: 2.3522
+    aliases: [paris, париж, 巴黎]
+  - slug: reykjavik
+    place: Reykjavík
+    lat: 64.1466
+    lon: -21.9426
+    aliases: [reykjavik, reykjavík, рейкьявик, 雷克雅未克]
+  - slug: anchorage
+    place: Anchorage
+    lat: 61.2181
+    lon: -149.9003
+    aliases: [anchorage, анкоридж]
+  - slug: buenosaires
+    place: Buenos Aires
+    lat: -34.6037
+    lon: -58.3816
+    aliases: ["buenos aires", буэнос-айрес, 布宜诺斯艾利斯]
+  - slug: jakarta
+    place: Jakarta
+    lat: -6.2088
+    lon: 106.8456
+    aliases: [jakarta, джакарта, 雅加达]
+  - slug: nairobi
+    place: Nairobi
+    lat: -1.2921
+    lon: 36.8219
+    aliases: [nairobi, найроби, 内罗毕]
+  - slug: vancouver
+    place: Vancouver
+    lat: 49.2827
+    lon: -123.1207
+    aliases: [vancouver, ванкувер, 温哥华]
+  # Densify 2026-09-20 — major uncovered forecast cities (model, not in-situ).
+  - slug: london
+    place: London
+    lat: 51.5074
+    lon: -0.1278
+    aliases: [london, лондон, 伦敦]
+  - slug: madrid
+    place: Madrid
+    lat: 40.4168
+    lon: -3.7038
+    aliases: [madrid, мадрид, 马德里]
+  - slug: rome
+    place: Rome
+    lat: 41.9028
+    lon: 12.4964
+    aliases: [rome, roma, рим, 罗马]
+  - slug: istanbul
+    place: Istanbul
+    lat: 41.0082
+    lon: 28.9784
+    aliases: [istanbul, константинополь, стамбул, 伊斯坦布尔]
+  - slug: warsaw
+    place: Warsaw
+    lat: 52.2297
+    lon: 21.0122
+    aliases: [warsaw, warszawa, варшава, 华沙]
+  - slug: stockholm
+    place: Stockholm
+    lat: 59.3293
+    lon: 18.0686
+    aliases: [stockholm, стокгольм, 斯德哥尔摩]
+  - slug: athens
+    place: Athens
+    lat: 37.9838
+    lon: 23.7275
+    aliases: [athens, афины, 雅典]
+  - slug: seoul
+    place: Seoul
+    lat: 37.5665
+    lon: 126.9780
+    aliases: [seoul, сеул, 서울, 首尔]
+  - slug: shanghai
+    place: Shanghai
+    lat: 31.2304
+    lon: 121.4737
+    aliases: [shanghai, шанхай, 上海]
+  - slug: beijing
+    place: Beijing
+    lat: 39.9042
+    lon: 116.4074
+    aliases: [beijing, пекин, 北京]
+  - slug: mumbai
+    place: Mumbai
+    lat: 19.0760
+    lon: 72.8777
+    aliases: [mumbai, бомбей, мумбаи, 孟买]
+  - slug: bangkok
+    place: Bangkok
+    lat: 13.7563
+    lon: 100.5018
+    aliases: [bangkok, бангкок, 曼谷]
+  - slug: manila
+    place: Manila
+    lat: 14.5995
+    lon: 120.9842
+    aliases: [manila, манила, 马尼拉]
+  - slug: hongkong
+    place: Hong Kong
+    lat: 22.3193
+    lon: 114.1694
+    aliases: ["hong kong", гонконг, 香港]
+  - slug: newyork
+    place: New York
+    lat: 40.7128
+    lon: -74.0060
+    aliases: ["new york", нью-йорк, 纽约]
+  - slug: chicago
+    place: Chicago
+    lat: 41.8781
+    lon: -87.6298
+    aliases: [chicago, чикаго, 芝加哥]
+  - slug: toronto
+    place: Toronto
+    lat: 43.6532
+    lon: -79.3832
+    aliases: [toronto, торонто, 多伦多]
+  - slug: miami
+    place: Miami
+    lat: 25.7617
+    lon: -80.1918
+    aliases: [miami, майами, 迈阿密]
+  - slug: santiago
+    place: Santiago
+    lat: -33.4489
+    lon: -70.6693
+    aliases: [santiago, сантьяго, 圣地亚哥]
+  - slug: lima
+    place: Lima
+    lat: -12.0464
+    lon: -77.0428
+    aliases: [lima, лима, 利马]
+  - slug: bogota
+    place: Bogotá
+    lat: 4.7110
+    lon: -74.0721
+    aliases: [bogota, bogotá, богота, 波哥大]
+  - slug: johannesburg
+    place: Johannesburg
+    lat: -26.2041
+    lon: 28.0473
+    aliases: [johannesburg, йоханнесбург, 约翰内斯堡]
+  - slug: casablanca
+    place: Casablanca
+    lat: 33.5731
+    lon: -7.5898
+    aliases: [casablanca, касабланка, 卡萨布兰卡]
+  - slug: accra
+    place: Accra
+    lat: 5.6037
+    lon: -0.1870
+    aliases: [accra, аккра, 阿克拉]
+  - slug: addisababa
+    place: Addis Ababa
+    lat: 9.0320
+    lon: 38.7469
+    aliases: ["addis ababa", аддис-абеба, 亚的斯亚贝巴]
+  - slug: auckland
+    place: Auckland
+    lat: -36.8485
+    lon: 174.7633
+    aliases: [auckland, окленд, 奥克兰]
+  - slug: melbourne
+    place: Melbourne
+    lat: -37.8136
+    lon: 144.9631
+    aliases: [melbourne, мельбурн, 墨尔本]
+  - slug: riyadh
+    place: Riyadh
+    lat: 24.7136
+    lon: 46.6753
+    aliases: [riyadh, эр-рияд, 利雅得]
+  - slug: telaviv
+    place: Tel Aviv
+    lat: 32.0853
+    lon: 34.7818
+    aliases: ["tel aviv", тель-авив, 特拉维夫]
+  - slug: almaty
+    place: Almaty
+    lat: 43.2220
+    lon: 76.8512
+    aliases: [almaty, алматы, алма-ата, 阿拉木图]

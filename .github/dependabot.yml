@@ -1,0 +1,22 @@
+# npm coverage is maintained by scripts/security/configure_npm_security.py.
+version: 2
+updates:
+- package-ecosystem: npm
+  directories:
+  - /
+  - /**/*
+  schedule:
+    interval: weekly
+    day: monday
+  open-pull-requests-limit: 10
+  groups:
+    npm-security:
+      applies-to: security-updates
+      patterns:
+      - '*'
+    npm-minor-patch:
+      patterns:
+      - '*'
+      update-types:
+      - minor
+      - patch

@@ -1,0 +1,28 @@
+# Point GAIA's om-* relays at a self-hosted Open-Meteo running on THIS host.
+#
+# Thin overlay: it only rewires gaia-backend. The Open-Meteo services themselves live
+# in docker-compose.om-node.yml, which is valid standalone so a big-disk host can run
+# just them. Use all three files together:
+#
+#   docker compose -f gaia/docker-compose.yml \
+#                  -f gaia/docker-compose.om-node.yml \
+#                  -f gaia/docker-compose.om-selfhost.yml up -d
+#
+# scripts/deploy_gaia.sh adds both by default; `--om-hosted` opts out. If Open-Meteo
+# runs on a DIFFERENT host, do not use this file at all — set GAIA_OM_BASE_URL to
+# that node's URL plus GAIA_OM_AUTH_TOKEN, and deploy_gaia.sh takes the remote path.
+#
+# Licence boundary and disk cost: see docker-compose.om-node.yml.
+
+services:
+  gaia-backend:
+    environment:
+      # One origin serves /v1/forecast, /v1/air-quality and /v1/marine — but only for
+      # variables that have actually been synced, so air quality and marine need
+      # their own models in GAIA_OM_SYNC_MODELS before those relays will answer.
+      GAIA_OM_BASE_URL: ${GAIA_OM_BASE_URL:-http://open-meteo:8080}
+      GAIA_OM_AQ_BASE_URL: ${GAIA_OM_AQ_BASE_URL:-http://open-meteo:8080}
+      GAIA_OM_MARINE_BASE_URL: ${GAIA_OM_MARINE_BASE_URL:-http://open-meteo:8080}
+    depends_on:
+      open-meteo:
+        condition: service_healthy
