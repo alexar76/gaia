@@ -1,0 +1,11 @@
+{
+  "topic": "owner/weather-station/observations",
+  "latitude": null,
+  "longitude": null,
+  "max_age_s": 300,
+  "timestamp": {"path": "observed_at", "format": "unix_s"},
+  "fields": {
+    "temperature_c": {"path": "temperature", "unit": "C"},
+    "humidity_pct": {"path": "humidity", "unit": "%"}
+  }
+}

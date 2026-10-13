@@ -1,0 +1,26 @@
+# Package-local, and it exists for two reasons beyond the obvious.
+#
+# 1. It stops hatchling walking up. hatchling picks its build exclusion list with
+#    locate_file(root, ".gitignore", boundary=".git") — it starts here and climbs until it
+#    finds one. With no file at this level it reached oracles/.gitignore, whose `**/data/`
+#    rule is what kept signing keys out of the sdist. That rule lived outside the package,
+#    so copying the package anywhere the ancestor was unreachable — a CI checkout of one
+#    subdirectory, a Docker build context, an rsync'd release dir — silently removed it.
+#    Reproduced 2026-07-30: an out-of-tree sdist build of a sibling oracle packaged its
+#    Ed25519 PRIVATE signing key in plaintext. Whoever holds an oracle's signing key can
+#    forge its receipts.
+#
+# 2. hatchling force-includes whichever exclusion file it found into the sdist, bypassing
+#    `exclude`, so that file WILL be published. Better that it be this one than a 200-line
+#    map of every secret path in a private monorepo.
+#
+# The real guarantee is the allow-list in pyproject.toml ([tool.hatch.build.targets.sdist]
+# include) plus the gate in scripts/publish_pypi.sh. This file is the third layer.
+
+data/
+*.egg-info/
+dist/
+build/
+__pycache__/
+.pytest_cache/
+.venv/

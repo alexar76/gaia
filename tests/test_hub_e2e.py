@@ -1,0 +1,415 @@
+"""End-to-end: the AIMarket hub sells GAIA readings under Pay-on-Verified escrow.
+
+Full protocol path, in process, nothing stubbed out of existence:
+
+    buyer → hub POST /ai-market/v2/invoke (verify block, wait=true)
+          → hub → GAIA /ai-market/v2/invoke   (real ASGI: attested reading,
+                                               X-Provider-Signature handshake ON)
+          → hub escrow HOLD on the channel
+          → hub PoV worker → GAIA /v1/verify  (statistical verdict, no Metis)
+          → pass: capture (debit recorded)  |  spike: release (refund + signed
+                                               rejection receipt + verify_failed
+                                               reputation event)
+
+This is the physical-oracle thesis in one test: a sensor gets PAID because an
+independent-interface verifier judged its reading plausible — and a lying
+sensor automatically refunds the buyer.
+"""
+
+from __future__ import annotations
+
+from datetime import datetime, timezone
+
+import httpx
+import pytest
+from fastapi.testclient import TestClient
+
+from gaia.app import build_app
+from gaia.capabilities import GatewayRuntime, build_spec
+
+# Hub lives in the monorepo (aimarket-hub/); the public alexar76/gaia satellite
+# does not vendor it — skip this module there so CI stays green.
+pytest.importorskip("aimarket_hub")
+
+import aimarket_hub.channels as channels_mod
+import aimarket_hub.outbound_http as outbound_mod
+import aimarket_hub.verified_settlement as vs_mod
+from aimarket_hub.api import create_app
+from aimarket_hub.channels import ChannelLedger
+from aimarket_hub.config import HubConfig
+from aimarket_hub.database import HubDatabase
+from aimarket_hub.models import Capability
+from aimarket_hub.signing import Signer
+
+
+@pytest.fixture
+def world(tmp_path, monkeypatch):
+    """One hub + one GAIA gateway wired over in-process ASGI transports."""
+    # ── Hub env (before HubConfig: crypto_enabled is captured at construction)
+    monkeypatch.setenv("AIFACTORY_CRYPTO_ENABLED", "1")
+    monkeypatch.setenv("AIMARKET_ALLOW_DEMO_CREDIT", "1")
+    monkeypatch.setenv("AIMARKET_SKIP_SEED", "1")
+    monkeypatch.setenv("AIMARKET_VERIFY_MIN_PRICE_USD", "0.0005")  # verify sub-cent reads
+    monkeypatch.setenv("AIMARKET_VERIFY_RETRY_BACKOFF_S", "0.05")
+    monkeypatch.setenv("AIMARKET_VERIFY_METIS_URL", "http://gaia.verify")
+    monkeypatch.setenv("AIMARKET_VERIFY_VERIFIER_ID", "gaia.verify@v1")
+    # Exercise the full supply-security handshake — GAIA must sign responses.
+    monkeypatch.setenv("AIMARKET_SUPPLY_REQUIRE_RESPONSE_SIG", "1")
+    monkeypatch.setenv("GAIA_SIGNING_KEY_PATH", str(tmp_path / "gaia_gw.key"))
+    monkeypatch.setenv("GAIA_ENABLE_LIVE", "1")
+    monkeypatch.setenv("GAIA_USGS_WQ_ENABLED", "1")
+    monkeypatch.setenv("GAIA_OM_ALLOW_HOSTED_COMMERCIAL", "1")  # test-only; no OM call is made
+
+    # ── GAIA gateway with a warmed fleet (verifier needs history)
+    runtime = GatewayRuntime(key_dir=str(tmp_path / "devkeys"))
+    runtime.warm_up(40)
+    gaia_app = build_app(runtime, public_url="http://gaia.test")
+    gaia_pubkey = gaia_app.state.protocol.signer.public_key_b64
+
+    # ── Route hub-outbound HTTP into the GAIA ASGI app (both provider invokes
+    #    and the Pay-on-Verified verifier calls)
+    async def fake_safe_post(url, *, json=None, headers=None, timeout=30.0, invoke=False):
+        transport = httpx.ASGITransport(app=gaia_app)
+        async with httpx.AsyncClient(transport=transport, base_url="http://gaia.test") as c:
+            return await c.post(httpx.URL(url).path, json=json, headers=headers or {})
+
+    monkeypatch.setattr(outbound_mod, "safe_post", fake_safe_post)
+
+    class _VerifyClient:
+        def __init__(self, *a, **k):
+            self._c = httpx.AsyncClient(transport=httpx.ASGITransport(app=gaia_app),
+                                        base_url="http://gaia.verify")
+
+        async def __aenter__(self):
+            await self._c.__aenter__()
+            return self
+
+        async def __aexit__(self, *a):
+            return await self._c.__aexit__(*a)
+
+        async def post(self, url, json=None, headers=None):
+            return await self._c.post(httpx.URL(url).path, json=json, headers=headers)
+
+    from types import SimpleNamespace
+    monkeypatch.setattr(vs_mod, "httpx", SimpleNamespace(
+        AsyncClient=_VerifyClient, RequestError=httpx.RequestError))
+
+    # ── Fresh channels ledger + hub app
+    monkeypatch.setattr(channels_mod, "_ledger",
+                        ChannelLedger(db_path=str(tmp_path / "channels.db")))
+    config = HubConfig()
+    config.db_path = str(tmp_path / "hub.db")
+    config.signing_key_path = str(tmp_path / "hub.key")
+    db = HubDatabase(config.db_path)
+    for cap_id, name, price in (
+        ("gaia.weather.read@v1", "GAIA weather reading", 0.001),
+        ("gaia.energy.read@v1", "GAIA energy reading", 0.001),
+        ("gaia.water_quality.read@v1", "GAIA USGS water-quality registry", 0.002),
+    ):
+        db.upsert_capability(Capability(
+            capability_id=cap_id, product_id="gaia.gateway", name=name,
+            source_hub="local", invoke_url="http://gaia.test/ai-market/v2/invoke",
+            price_per_call_usd=price, trust_score=0.9,
+            publisher_id="gaia", provider_pubkey=gaia_pubkey,
+        ))
+    hub_app = create_app(config=config, db=db, signer=Signer(config.signing_key_path))
+
+    with TestClient(hub_app) as client:
+        yield SimpleNamespace(client=client, db=db, runtime=runtime)
+
+
+def _open_channel(client):
+    ch = client.post("/ai-market/v2/channel/open", json={"deposit_usd": 5.0}).json()
+    return ch["channel"]["channel_id"], ch["channel"]["channel_secret"]
+
+
+def _buy_reading(client, channel_id, secret, capability="gaia.weather.read@v1",
+                 device="ws-01"):
+    return client.post(
+        "/ai-market/v2/invoke",
+        headers={"X-Payment-Channel": channel_id, "X-Payment-Channel-Secret": secret},
+        json={
+            "product_id": "gaia.gateway", "capability_id": capability,
+            "source_hub": "local", "input": {"device_id": device},
+            "verify": {"requested": True, "wait": True,
+                       "intent": f"Provide one plausible, honest sensor reading from device {device}"},
+        },
+    )
+
+
+def _reputation(db):
+    rows = db._conn.execute("SELECT event_type FROM reputation_events").fetchall()
+    return [r["event_type"] for r in rows]
+
+
+def test_honest_sensor_reading_is_paid_after_verification(world):
+    channel_id, secret = _open_channel(world.client)
+    r = _buy_reading(world.client, channel_id, secret)
+    assert r.status_code == 200, r.text
+    body = r.json()
+
+    # The buyer got a real attested reading…
+    reading = body["result"]["reading"]
+    assert reading["device_id"] == "ws-01"
+    assert body["result"]["attestation"]["algorithm"] == "ed25519"
+
+    # …and money moved ONLY through the verified-escrow path.
+    env = body["verification"]
+    assert env["status"] == "settled" and env["verified"] is True
+    assert env["verifier"] == "gaia.verify@v1"  # the verdict is honestly attributed
+    assert env["trace_id"].startswith("gaia_")
+    assert env["signature"]["algorithm"] == "ed25519"
+
+    ch = channels_mod._ledger.get(channel_id)
+    assert ch["used_usd"] == pytest.approx(0.01)   # $0.001 billed at the 1¢ ledger quantum
+    assert ch["balance_usd"] == pytest.approx(4.99)
+    assert "verify_passed" in _reputation(world.db)
+
+    # The verdict is auditable end-to-end at the verifier's trace endpoint.
+    trace = world.runtime.service.trace(env["trace_id"])
+    assert trace and trace["verified"] is True and trace["device_id"] == "ws-01"
+
+
+def test_complete_usgs_registry_is_buyable_and_public_ids_are_not_blocked_as_pii(
+    world, monkeypatch,
+):
+    device = world.runtime.fleet.get("usgs-wq-01")
+    advertised = next(
+        cap for cap in build_spec(world.runtime, public_url="http://gaia.test").capabilities
+        if cap.capability_id == "gaia.water_quality.read@v1"
+    )
+    assert advertised.price_per_call_usd == pytest.approx(0.002)
+    assert {"parameters", "require_all", "max_age_hours"} <= set(
+        advertised.input_schema["properties"]
+    )
+
+    def public_usgs_page(url):
+        if "monitoring-locations/items" in url:
+            return {
+                "numberMatched": None,
+                "numberReturned": 1,
+                "features": [{
+                    "id": "USGS-123456789",
+                    "properties": {
+                        "id": "USGS-123456789",
+                        "agency_code": "USGS",
+                        "monitoring_location_name": "Public Test River",
+                        "site_type": "Stream",
+                        "state_name": "Maryland",
+                        "county_name": "Example County",
+                        "country_name": "United States of America",
+                        "hydrologic_unit_code": "02070010",
+                    },
+                    "geometry": {"type": "Point", "coordinates": [-77.1, 38.9]},
+                }],
+            }
+        code = url.split("parameter_code=", 1)[1].split("&", 1)[0]
+        assert code == "00400"
+        return {
+            "numberMatched": 1,
+            "features": [{
+                "properties": {
+                    "monitoring_location_id": "USGS-123456789",
+                    "monitoring_location_name": "Public Test River",
+                    "parameter_code": code,
+                    "time": datetime.now(timezone.utc).isoformat(),
+                    "value": "7.2",
+                    "approval_status": "Approved",
+                    "qualifier": "",
+                    "time_series_id": "4123456789012345",
+                },
+                "geometry": {"type": "Point", "coordinates": [-77.1, 38.9]},
+            }],
+        }
+
+    monkeypatch.setattr(device, "_fetch", public_usgs_page)
+    prices = {
+        row["capability_id"]: row
+        for row in world.client.get("/ai-market/v2/prices").json()["prices"]
+    }
+    assert prices["gaia.water_quality.read@v1"]["price_usd"] == pytest.approx(0.002)
+    channel_id, secret = _open_channel(world.client)
+    response = world.client.post(
+        "/ai-market/v2/invoke",
+        headers={"X-Payment-Channel": channel_id, "X-Payment-Channel-Secret": secret},
+        json={
+            "product_id": "gaia.gateway",
+            "capability_id": "gaia.water_quality.read@v1",
+            "source_hub": "local",
+            "input": {
+                "device_id": "usgs-wq-01",
+                "west": -78.0,
+                "south": 38.0,
+                "east": -76.0,
+                "north": 40.0,
+                "parameters": ["ph"],
+                "require_all": True,
+            },
+        },
+    )
+
+    assert response.status_code == 200, response.text
+    body = response.json()
+    assert body.get("error") != "plugin_blocked_response"
+    point = body["result"]["reading"]["hotspots"][0]
+    assert point["station_id"] == "123456789"
+    assert point["approval_status"] == "Approved"
+    assert point["observation_metadata"]["ph"]["time_series_id"] == "4123456789012345"
+    # Ledger has a one-cent settlement quantum; the advertised source price
+    # remains $0.002 and is asserted in the catalog test below.
+    assert channels_mod._ledger.get(channel_id)["used_usd"] == pytest.approx(0.01)
+
+
+def test_lying_sensor_is_refunded_and_loses_reputation(world):
+    channel_id, secret = _open_channel(world.client)
+    world.runtime.fleet.get("ws-01").inject_fault(
+        "spike", fields=["temperature_c"], magnitude=45.0)
+
+    r = _buy_reading(world.client, channel_id, secret)
+    assert r.status_code == 200, r.text  # output delivered; the MONEY came back
+    body = r.json()
+    env = body["verification"]
+    assert env["status"] == "refunded" and env["verified"] is False
+    assert env["reason"] == "verify_failed"
+
+    rejection = body["rejection_receipt"]
+    assert rejection["type"] == "verification_rejection"
+    assert rejection["trace_id"].startswith("gaia_")
+    assert rejection["signature"]["algorithm"] == "ed25519"
+
+    ch = channels_mod._ledger.get(channel_id)
+    assert ch["used_usd"] == pytest.approx(0.0)    # hold released — buyer kept their money
+    assert ch["balance_usd"] == pytest.approx(5.0)
+    assert "verify_failed" in _reputation(world.db)
+
+    # The trace names the physics that convicted the sensor.
+    trace = world.runtime.service.trace(env["trace_id"])
+    failed = {c["name"] for c in trace["checks"] if not c["ok"]}
+    assert failed & {"zscore:temperature_c", "rate:temperature_c",
+                     "sibling:temperature_c", "bounds:temperature_c"}
+
+
+def test_the_hubs_own_bar_reaches_the_verifier_and_comes_back(world, monkeypatch):
+    """The escrow's threshold and GAIA's are configured in different services. The hub
+    sends its bar as `min_verify_score`; GAIA must judge at THAT bar and echo it, or
+    the two sides silently apply different standards to the same money.
+
+    Raised to 0.95 here so the number cannot be mistaken for either default.
+    """
+    monkeypatch.setenv("AIMARKET_VERIFY_SCORE_THRESHOLD", "0.95")
+    seen: dict = {}
+    real_verify = world.runtime.service.verify
+
+    def _spy(raw_input, min_verify_score=None):
+        seen["bar"] = min_verify_score
+        env = real_verify(raw_input, min_verify_score)
+        seen["echoed"] = env.get("threshold")
+        seen["source"] = env.get("threshold_source")
+        return env
+
+    monkeypatch.setattr(world.runtime.service, "verify", _spy)
+
+    channel_id, secret = _open_channel(world.client)
+    body = _buy_reading(world.client, channel_id, secret).json()
+    env = body["verification"]
+    assert seen["bar"] == pytest.approx(0.95)      # the hub's bar arrived…
+    assert seen["echoed"] == pytest.approx(0.95)   # …was applied…
+    assert seen["source"] == "request"             # …and is attributed to the caller
+    # …so the hub's own cross-check finds no disagreement and the sale settles.
+    assert env["status"] == "settled" and env["verdict"] == "passed"
+    trace = world.runtime.service.trace(env["trace_id"])
+    assert trace and trace["verified"] is True
+    assert channels_mod._ledger.get(channel_id)["used_usd"] == pytest.approx(0.01)
+
+
+def test_a_bar_that_does_not_survive_the_envelope_grid_still_settles(world, monkeypatch):
+    """The cross-check must not fire on the SAME bar seen through the envelope's
+    4-decimal grid.
+
+    `0.90005` is a perfectly ordinary operator bar. It reaches GAIA exactly and GAIA
+    judges at it exactly, but the envelope publishes numbers rounded to 4 decimals, so
+    the echo comes back `0.9` (or `0.9001`). Compared at float precision that is a
+    "disagreement" on every single attempt: an honest sensor, an honest verifier and a
+    correctly-configured hub that nonetheless refunds every invoke it ever verifies and
+    never pays a provider again. The tolerance is one grid quantum, so this settles.
+    """
+    monkeypatch.setenv("AIMARKET_VERIFY_SCORE_THRESHOLD", "0.90005")
+    echoed: dict = {}
+    real_verify = world.runtime.service.verify
+
+    def _spy(raw_input, min_verify_score=None):
+        env = real_verify(raw_input, min_verify_score)
+        echoed.update(bar=min_verify_score, echo=env.get("threshold"))
+        return env
+
+    monkeypatch.setattr(world.runtime.service, "verify", _spy)
+
+    channel_id, secret = _open_channel(world.client)
+    body = _buy_reading(world.client, channel_id, secret).json()
+    # Precondition: the bar arrived intact and the echo really is lossy at this value.
+    assert echoed["bar"] == pytest.approx(0.90005)
+    assert echoed["echo"] != echoed["bar"]
+
+    env = body["verification"]
+    assert (env["verdict"], env["status"]) == ("passed", "settled")
+    assert channels_mod._ledger.get(channel_id)["used_usd"] == pytest.approx(0.01)
+
+
+def test_a_verifier_judging_at_another_bar_is_never_captured(world, monkeypatch):
+    """The detection half of the same coupling. A verifier that answers with a
+    threshold other than the operator's has judged something the operator did not ask
+    for, so its verdict cannot be read as pass OR fail: refuse to settle, refund, and
+    do not blame the provider for a configuration disagreement."""
+    real_verify = world.runtime.service.verify
+
+    def _wrong_bar(raw_input, min_verify_score=None):
+        # A stale/misconfigured verifier deployment: it judges at its own 0.7 and says
+        # so, while the hub below is banking on 0.95.
+        return real_verify(raw_input, None)
+
+    monkeypatch.setenv("AIMARKET_VERIFY_SCORE_THRESHOLD", "0.95")
+    monkeypatch.setattr(world.runtime.service, "verify", _wrong_bar)
+
+    channel_id, secret = _open_channel(world.client)
+    body = _buy_reading(world.client, channel_id, secret).json()
+    env = body["verification"]
+    assert env["verdict"] == "indeterminate"
+    assert env["reason"] == "threshold_mismatch"
+    assert env["status"] == "refunded"
+    assert channels_mod._ledger.get(channel_id)["balance_usd"] == pytest.approx(5.0)
+    # A disagreeing verifier is not a bad sensor: no reputation event either way.
+    assert _reputation(world.db) == []
+
+
+def test_offline_sensor_costs_nothing(world):
+    channel_id, secret = _open_channel(world.client)
+    world.runtime.fleet.get("em-01").inject_fault("dropout")
+    r = _buy_reading(world.client, channel_id, secret,
+                     capability="gaia.energy.read@v1", device="em-01")
+    assert r.status_code == 502  # provider fault surfaced
+    ch = channels_mod._ledger.get(channel_id)
+    assert ch["balance_usd"] == pytest.approx(5.0)  # no service — no debit, no hold
+
+
+def test_offline_sensor_costs_nothing_without_pay_on_verified(world):
+    """The plain paid rail must fail closed on its own.
+
+    Pay-on-Verified used to be the only thing refunding an undelivered read: a
+    bare invoke debited the buyer and signed a receipt saying success over an
+    ``ok: false`` body. SKUs whose normal state is offline (an empty tsunami CAP
+    feed) live on this path every quiet day.
+    """
+    channel_id, secret = _open_channel(world.client)
+    world.runtime.fleet.get("em-01").inject_fault("dropout")
+    r = world.client.post(
+        "/ai-market/v2/invoke",
+        headers={"X-Payment-Channel": channel_id, "X-Payment-Channel-Secret": secret},
+        json={
+            "product_id": "gaia.gateway", "capability_id": "gaia.energy.read@v1",
+            "source_hub": "local", "input": {"device_id": "em-01"},
+        },
+    )
+    assert r.status_code == 502, "an undelivered read must not be served as 200"
+    assert "receipt" not in r.json(), "no signed receipt for work that never happened"
+    ch = channels_mod._ledger.get(channel_id)
+    assert ch["balance_usd"] == pytest.approx(5.0)  # no debit without a verifier to refund it

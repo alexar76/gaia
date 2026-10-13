@@ -1,0 +1,199 @@
+# Sensor.Community city mesh — operator-anchored area pins for ATLAS + GAIA.
+#
+# Canonical copy: gaia/config/sc_mesh_cities.yaml
+# Mirror:         atlas/config/sc_mesh_cities.yaml  (must be identical — CI + sync script)
+#
+# Product model: buyers get *any* lat/lon via gaia.air.read@v1 on sc-01 / sc-{slug}.
+# These pins are map anchors in SC-dense regions — not every SDS011 node on Earth.
+# Berlin stays on legacy id sc-01 (env GAIA_SC_LAT/LON). Do not duplicate berlin here.
+#
+# Add a city: edit THIS file → run ./scripts/sync_physical_sensor_catalogs.sh → redeploy.
+# Terms: docs/localization-glossary.md (mesh, pin, LIVE, sensor, relay, device_id).
+
+version: 1
+
+cities:
+  # Central Europe — densest SC footprint
+  - slug: stuttgart
+    place: Stuttgart
+    lat: 48.7758
+    lon: 9.1829
+    radius_km: 5.0
+    aliases: [stuttgart, штутгарт]
+  - slug: munich
+    place: Munich
+    lat: 48.1351
+    lon: 11.5820
+    radius_km: 5.0
+    aliases: [munich, münchen, мюнхен]
+  - slug: vienna
+    place: Vienna
+    lat: 48.2082
+    lon: 16.3738
+    radius_km: 5.0
+    aliases: [vienna, wien, вена]
+  - slug: prague
+    place: Prague
+    lat: 50.0755
+    lon: 14.4378
+    radius_km: 5.0
+    aliases: [prague, praha, прага]
+  - slug: warsaw
+    place: Warsaw
+    lat: 52.2297
+    lon: 21.0122
+    radius_km: 5.0
+    aliases: [warsaw, warszawa, варшава]
+  - slug: krakow
+    place: Kraków
+    lat: 50.0647
+    lon: 19.9450
+    radius_km: 5.0
+    aliases: [krakow, kraków, краков]
+  - slug: hamburg
+    place: Hamburg
+    lat: 53.5511
+    lon: 9.9937
+    radius_km: 5.0
+    aliases: [hamburg, гамбург]
+  - slug: cologne
+    place: Cologne
+    lat: 50.9375
+    lon: 6.9603
+    radius_km: 5.0
+    aliases: [cologne, köln, кельн]
+  # Western / Northern Europe
+  - slug: amsterdam
+    place: Amsterdam
+    lat: 52.3676
+    lon: 4.9041
+    radius_km: 5.0
+    aliases: [amsterdam, амстердам]
+  - slug: brussels
+    place: Brussels
+    lat: 50.8503
+    lon: 4.3517
+    radius_km: 5.0
+    aliases: [brussels, bruxelles, брюссель]
+  - slug: london
+    place: London
+    lat: 51.5074
+    lon: -0.1278
+    radius_km: 5.0
+    aliases: [london, лондон]
+  - slug: paris
+    place: Paris
+    lat: 48.8566
+    lon: 2.3522
+    radius_km: 5.0
+    aliases: [paris, париж]
+  - slug: lyon
+    place: Lyon
+    lat: 45.7640
+    lon: 4.8357
+    radius_km: 5.0
+    aliases: [lyon, лион]
+  - slug: zurich
+    place: Zürich
+    lat: 47.3769
+    lon: 8.5417
+    radius_km: 5.0
+    aliases: [zurich, zürich, цюрих]
+  - slug: stockholm
+    place: Stockholm
+    lat: 59.3293
+    lon: 18.0686
+    radius_km: 5.0
+    aliases: [stockholm, стокгольм]
+  - slug: copenhagen
+    place: Copenhagen
+    lat: 55.6761
+    lon: 12.5683
+    radius_km: 5.0
+    aliases: [copenhagen, københavn, копенгаген]
+  - slug: oslo
+    place: Oslo
+    lat: 59.9139
+    lon: 10.7522
+    radius_km: 5.0
+    aliases: [oslo, осло]
+  # Southern Europe
+  - slug: madrid
+    place: Madrid
+    lat: 40.4168
+    lon: -3.7038
+    radius_km: 5.0
+    aliases: [madrid, мадрид]
+  - slug: barcelona
+    place: Barcelona
+    lat: 41.3874
+    lon: 2.1686
+    radius_km: 5.0
+    aliases: [barcelona, барселона]
+  - slug: rome
+    place: Rome
+    lat: 41.9028
+    lon: 12.4964
+    radius_km: 5.0
+    aliases: [rome, roma, рим]
+  - slug: milan
+    place: Milan
+    lat: 45.4642
+    lon: 9.1900
+    radius_km: 5.0
+    aliases: [milan, milano, милан]
+  - slug: lisbon
+    place: Lisbon
+    lat: 38.7223
+    lon: -9.1393
+    radius_km: 5.0
+    aliases: [lisbon, lisboa, лиссабон]
+  - slug: athens
+    place: Athens
+    lat: 37.9838
+    lon: 23.7275
+    radius_km: 5.0
+    aliases: [athens, athina, афины]
+  # Global pockets (sparser than EU — empty area may go offline)
+  - slug: newyork
+    place: New York
+    lat: 40.7128
+    lon: -74.0060
+    radius_km: 8.0
+    aliases: ["new york", nyc, нью-йорк]
+  - slug: sanfrancisco
+    place: San Francisco
+    lat: 37.7749
+    lon: -122.4194
+    radius_km: 8.0
+    aliases: ["san francisco", sf, сан-франциско]
+  - slug: santiago
+    place: Santiago
+    lat: -33.4489
+    lon: -70.6693
+    radius_km: 8.0
+    aliases: [santiago, сантьяго]
+  - slug: bangkok
+    place: Bangkok
+    lat: 13.7563
+    lon: 100.5018
+    radius_km: 8.0
+    aliases: [bangkok, бангкок]
+  - slug: taipei
+    place: Taipei
+    lat: 25.0330
+    lon: 121.5654
+    radius_km: 8.0
+    aliases: [taipei, тайбэй]
+  - slug: melbourne
+    place: Melbourne
+    lat: -37.8136
+    lon: 144.9631
+    radius_km: 8.0
+    aliases: [melbourne, мельбурн]
+  - slug: cape_town
+    place: Cape Town
+    lat: -33.9249
+    lon: 18.4241
+    radius_km: 8.0
+    aliases: ["cape town", кейптаун]
