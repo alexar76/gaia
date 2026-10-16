@@ -6,6 +6,9 @@ What must hold, whatever else changes:
   * the verdict trusts only the plug's PINNED key, and any one false fact fails it;
   * an unproven effect is switched back off and costs nothing;
   * one command settles once.
+
+Who may command an actuator (access policy, leases, vouched payers) is in
+test_actuation_access.py.
 """
 
 from __future__ import annotations
@@ -24,18 +27,23 @@ from gaia.clock import SimClock
 from gaia.devices.base import DeviceOffline
 from gaia.devices.plug import MqttLink, SmartPlugSim, TasmotaPlug, pulse_time
 from gaia.fleet import Fleet
+from gaia.payer_identity import Caller
 from gaia.plausibility import PlausibilityVerifier
 from gaia.verifier import VerifierService
-from gaia.wot import device_to_td
+from gaia.wot import device_to_td, td_to_tools
 from oracle_core.signing import Signer
 
 T0 = 1_792_145_220.0  # 2026-10-16T10:07:00Z
+# One vouched payer: a verified "on" leases the plug to its caller, so a test that
+# switches on and then off does both as the same caller.
+BUYER = Caller("0x" + "b1" * 20, vouched_by="https://hub.test", rail="channel")
 
 
 def _spec(**kw) -> ActuatorSpec:
     base = dict(actuator_id="plug-1", label="test heater", kind="sim-plug", expect_on_w=1000,
                 off_max_w=10, min_on_s=10, max_on_s=900, cooldown_s=0, effect_timeout_s=2,
                 load_w=1500)
+    base.setdefault("access", "public")  # these tests drive the demo-style plug
     base.update(kw)
     return ActuatorSpec(**base)
 
@@ -100,7 +108,7 @@ def test_pulse_time_refuses_what_tasmota_cannot_hold():
 
 
 def test_on_switches_measures_and_returns_verified_evidence(rig):
-    out = rig.actuate("plug-1", "on", 60, caller="buyer-1")
+    out = rig.actuate("plug-1", "on", 60, caller=BUYER)
     assert out["effect"]["verified"] is True
     assert out["before"]["reading"]["values"]["power_w"] < 10
     assert out["after"]["reading"]["values"]["power_w"] >= 1000
@@ -108,16 +116,18 @@ def test_on_switches_measures_and_returns_verified_evidence(rig):
         "field": "power_w", "op": ">=", "value": 1000, "within_s": 2}
     assert out["auto_off_at"] == "2026-10-16T10:08:00Z"
     assert out["simulated"] is True
+    assert out["lease"] == {"holder": BUYER.id, "until": "2026-10-16T10:08:00Z"}
     events = [e["event"] for e in _journal(rig)]
-    assert events == ["command", "outcome"]
+    assert events == ["command", "outcome", "lease"]
+    assert _journal(rig)[0]["caller"] == BUYER.journal()
     assert rig.evidence(out["actuation"]["record"]["command_id"])["verdict"]["verified"]
 
 
 def test_off_is_verified_by_the_power_dropping(rig):
-    rig.actuate("plug-1", "on", 60)
-    out = rig.actuate("plug-1", "off")
+    rig.actuate("plug-1", "on", 60, caller=BUYER)
+    out = rig.actuate("plug-1", "off", caller=BUYER)
     assert out["effect"]["verified"] and out["after"]["reading"]["values"]["power_w"] <= 10
-    assert out["auto_off_at"] is None
+    assert out["auto_off_at"] is None and out["lease"] is None
 
 
 def test_the_evidence_verifies_independently_by_the_pinned_key(rig):
@@ -175,11 +185,11 @@ def test_a_cooldown_is_enforced(tmp_path):
     fleet = Fleet()
     fleet.add(SmartPlugSim("plug-1", clock, key_dir=str(tmp_path)))
     ctl = ActuationController(fleet, clock, [_spec(cooldown_s=30)])
-    ctl.actuate("plug-1", "on", 60)
+    ctl.actuate("plug-1", "on", 60, caller=BUYER)
     with pytest.raises(ValueError, match="cooling down: retry in 30 s"):
-        ctl.actuate("plug-1", "off")
+        ctl.actuate("plug-1", "off", caller=BUYER)
     clock.advance(31)
-    ctl.actuate("plug-1", "off")
+    ctl.actuate("plug-1", "off", caller=BUYER)
 
 
 def test_one_command_at_a_time(rig):
@@ -211,8 +221,8 @@ def test_a_plug_that_stops_reporting_costs_nothing(rig):
 
 
 def test_command_seq_only_grows(rig):
-    a = rig.actuate("plug-1", "on", 60)["actuation"]["record"]["seq"]
-    b = rig.actuate("plug-1", "off")["actuation"]["record"]["seq"]
+    a = rig.actuate("plug-1", "on", 60, caller=BUYER)["actuation"]["record"]["seq"]
+    b = rig.actuate("plug-1", "off", caller=BUYER)["actuation"]["record"]["seq"]
     assert b > a
 
 
@@ -523,6 +533,10 @@ def test_the_plug_is_a_wot_thing_with_actions(act_app):
     assert set(td["actions"]) == {"switchOn", "switchOff"}
     form = td["actions"]["switchOn"]["forms"][0]
     assert form["aimarket:capability_id"] == "gaia.actuate@v1" and form["op"] == ["invokeaction"]
+    # The switch is priced as the catalogue lists it, not at the plug's read price.
+    assert form["aimarket:price_per_call_usd"] == 0.05
+    assert {t["capability_id"]: t["price_per_call_usd"]
+            for t in td_to_tools(td, product_id="gaia.gateway")}["plug-sim-01.switchOn@v1"] == 0.05
 
 
 def test_the_kill_switch_api_is_operator_only(act_app):

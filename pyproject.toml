@@ -18,6 +18,8 @@ dependencies = [
     "h5py>=3.10",
     "tifffile>=2024.2",
     "pyproj>=3.7",
+    # Owner commands are EIP-712 signatures of the owner's wallet (gaia/owner_auth.py).
+    "eth-account>=0.13",
 ]
 
 [project.optional-dependencies]

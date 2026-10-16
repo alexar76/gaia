@@ -22,3 +22,18 @@ actuators:
     effect_timeout_s: 20
     latitude: 52.5200           # optional: where ATLAS shows it
     longitude: 13.4050
+    # Who may command it: only its owner. Wallet addresses, QUOTED (YAML reads a bare 0x… as
+    # a number). The owner signs commands with this wallet (EIP-712, gaia.owner.command@v1 —
+    # no hub, no payment), or commands through a hub that vouches the owner paid. Delegates
+    # are the owner's own agents' wallets. access: public is refused for a real plug.
+    access: owner
+    owner: "0x0000000000000000000000000000000000000001"   # always passes, may end any lease
+    delegates:
+      - "0x0000000000000000000000000000000000000002"      # e.g. the owner's home agent
+    # Selling this plug's consumption statistics to others is the owner's choice, off by
+    # default. With sale: true, gaia.consumption.read@v1 sells hourly (or only daily) totals
+    # for at most history_days back; switching is never for sale.
+    consumption:
+      sale: false
+      resolution: hour            # or day: sell only daily totals
+      history_days: 30

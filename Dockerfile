@@ -21,7 +21,7 @@ WORKDIR /app
 COPY oracles/core /app/core
 COPY gaia /app/gaia
 
-RUN pip install --no-cache-dir -e "/app/core[pqc]" -e "/app/gaia[mqtt]"
+RUN pip install --no-cache-dir -e "/app/core[pqc,postgres]" -e "/app/gaia[mqtt]"
 
 COPY --from=gazetteer /g/gazetteer.sqlite /app/gazetteer/gazetteer.sqlite
 ENV GAIA_GAZETTEER_PATH=/app/gazetteer/gazetteer.sqlite
@@ -42,7 +42,9 @@ FROM base AS runtime
 EXPOSE 9320
 # Not root: the public GAIA backend (signing keys in /data). uid 10001 owns only what it writes (/data).
 RUN mkdir -p /data && chown -R 10001:10001 /data
-ENV HOME=/tmp
+ENV HOME=/tmp \
+    ORACLE_CALLS=1 \
+    ORACLE_DATA_DIR=/data
 USER 10001:10001
 
 CMD ["python", "-m", "gaia.main"]

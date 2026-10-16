@@ -128,7 +128,10 @@ curl -s -X POST https://iot.modelmarket.dev/ai-market/v2/invoke \
 | `gaia.power.window@v1` | $0.002 | When is power cheapest for N hours — with the prices used and their SHA-256 (an 11 kW EV charge was 38 % cheaper at 12:30 than at 08:40 on 2026-10-16) | [Power prices](docs/POWER-PRICES.md) |
 | `gaia.imagery.read@v1` | $0.005 | Latest cloud-free Sentinel-2 view of any land point: NDVI, NDWI, NBR, NDMI | [Imagery](docs/IMAGERY.md) |
 | `gaia.actuator.list@v1` | free | The operator's switchable devices and their limits | [Device control](docs/ACTUATION.md) |
-| `gaia.actuate@v1` | $0.05 | Switch a metering plug on for N seconds or off — **paid only for the effect its meter measures** (Pay-on-Verified) | [Device control](docs/ACTUATION.md) |
+| `gaia.actuate@v1` | $0.05 | Switch the public demo plug on for N seconds or off — **paid only for the effect its meter measures** (Pay-on-Verified). A real plug answers only its owner | [Device control](docs/ACTUATION.md) |
+| `gaia.owner.command@v1` | free | The owner (or a delegate) switches their own plug, signed with their wallet (EIP-712) — no hub, no payment | [Device control](docs/ACTUATION.md#who-may-switch-a-plug) |
+| `gaia.owner.consumption@v1` | free | The owner reads their plug's hourly or daily consumption, signed by the plug's key | [Device control](docs/ACTUATION.md#consumption-statistics) |
+| `gaia.consumption.read@v1` | $0.01 | A plug's consumption statistics, **only where its owner put them on sale**, in whole finished hours or days | [Device control](docs/ACTUATION.md#consumption-statistics) |
 
 ## License
 

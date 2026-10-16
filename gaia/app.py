@@ -3,18 +3,20 @@
 from __future__ import annotations
 
 import os
+from pathlib import Path
 from typing import Any, Optional
 
 import hmac
 
 from fastapi import FastAPI, Header, HTTPException, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from oracle_core import create_app
 from oracle_core.app import client_key
 from oracle_core.ratelimit import RateLimiter
 from pydantic import BaseModel, Field
 
 from gaia import __version__
+from gaia.actuation_capabilities import ACTUATE_PRICE_USD
 from gaia.capabilities import GatewayRuntime, build_spec
 from gaia.devices.base import DeviceOffline
 from gaia.middleware import ProviderSignatureMiddleware
@@ -298,15 +300,25 @@ def build_app(runtime: GatewayRuntime | None = None,
 
         # ── W3C WoT Thing Descriptions ──────────────────────────────────────
 
+        # The catalogue's own prices, not one figure for every device: most reads are
+        # $0.002-0.003 and a plug's switch is $0.05, and a TD importer bills what it reads.
+        prices = {c.capability_id: float(c.price_per_call_usd or 0.0) for c in spec.capabilities}
+
+        def _td(device: Any) -> dict[str, Any]:
+            cap = _read_cap_for(device)
+            # The hubs GAIA's price gate names (oracle_core.price_gate, absent in a core
+            # older than 0.5): with the gate on, priced forms point at them, since GAIA
+            # sells priced calls only through them.
+            gate = getattr(app.state, "price_gate", None)
+            hubs = list(gate.hubs) if gate is not None and gate.mode != "off" else []
+            return device_to_td(device, spec.public_url, cap, prices.get(cap, 0.001),
+                                hubs=hubs, product_id=spec.product_id,
+                                action_price_usd=prices.get("gaia.actuate@v1", ACTUATE_PRICE_USD))
+
         @app.get("/wot")
         async def wot_directory(request: Request) -> dict[str, Any]:
             _limit(aux_limiter, request)
-            things = [
-                device_to_td(d, spec.public_url,
-                             _read_cap_for(d),
-                             0.001)
-                for d in runtime.fleet.devices()
-            ]
+            things = [_td(d) for d in runtime.fleet.devices()]
             return {"things": things, "count": len(things)}
 
         @app.get("/wot/{device_id}")
@@ -316,8 +328,7 @@ def build_app(runtime: GatewayRuntime | None = None,
                 device = runtime.fleet.get(device_id)
             except ValueError:
                 raise HTTPException(status_code=404, detail="Unknown device") from None
-            cap = _read_cap_for(device)
-            return device_to_td(device, spec.public_url, cap, 0.001)
+            return _td(device)
 
         # ── Actuation: public status + evidence, operator kill switch ───────
 
@@ -335,6 +346,27 @@ def build_app(runtime: GatewayRuntime | None = None,
                                     detail="the kill switch API requires GAIA_ACTUATION_TOKEN")
             if not (authorization and hmac.compare_digest(authorization, f"Bearer {token}")):
                 raise HTTPException(status_code=401, detail="invalid or missing Authorization")
+
+        # The owner's page: a plug's owner connects a wallet and switches their own plugs and reads
+        # their consumption, each request an EIP-712 signature (gaia.owner.*@v1). Static, same
+        # origin as the invoke API, no inline script (the CSP below allows only these two files).
+        owner_dir = Path(__file__).resolve().parent / "owner_page"
+        owner_csp = {"Content-Security-Policy": "default-src 'self'; script-src 'self'; "
+                     "style-src 'self' 'unsafe-inline'; connect-src 'self'; img-src 'self' data:; "
+                     "frame-ancestors 'none'; base-uri 'none'; form-action 'none'",
+                     "X-Content-Type-Options": "nosniff", "Referrer-Policy": "no-referrer",
+                     "Cache-Control": "no-cache"}
+
+        @app.get("/owner", include_in_schema=False)
+        @app.get("/owner/", include_in_schema=False)
+        async def owner_page() -> FileResponse:
+            return FileResponse(owner_dir / "index.html", media_type="text/html; charset=utf-8",
+                                headers=owner_csp)
+
+        @app.get("/owner/owner.js", include_in_schema=False)
+        async def owner_script() -> FileResponse:
+            return FileResponse(owner_dir / "owner.js",
+                                media_type="text/javascript; charset=utf-8", headers=owner_csp)
 
         @app.get("/actuation/v1/status")
         async def actuation_status(request: Request) -> dict[str, Any]:
@@ -459,4 +491,12 @@ def build_app(runtime: GatewayRuntime | None = None,
     app = create_app(spec, cors_origins=os.environ.get("GAIA_CORS_ORIGINS", ""), extra=extra)
     # Sign invoke responses with the gateway key (hub supply-security handshake).
     app.add_middleware(ProviderSignatureMiddleware, signer=app.state.protocol.signer)
+    if getattr(runtime, "actuation", None) is not None:
+        # Who is commanding a device: the payer a trusted hub vouched for on this call
+        # (the hubs the price gate pins), or nobody. See gaia/payer_identity.py.
+        from gaia.payer_identity import PayerIdentityMiddleware, PayerVerifier
+
+        app.state.payer_verifier = PayerVerifier.from_env(spec.public_url)
+        app.add_middleware(PayerIdentityMiddleware, verifier=app.state.payer_verifier,
+                           capabilities=["gaia.actuate@v1"])
     return app

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="robots" content="noindex" />
+<title>GAIA — your plugs</title>
+<style>
+  :root { --bg:#08110f; --panel:#0f1d19; --ink:#e8f4f0; --muted:#94b4aa; --faint:#5f7d74;
+          --accent:#2dd4a8; --warn:#e8b85a; --bad:#ef6f61; --brd:rgba(45,212,168,.22);
+          --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--ink); font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif; }
+  .wrap { max-width:880px; margin:0 auto; padding:24px 18px 60px; }
+  header { display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap; }
+  h1 { font-size:24px; margin:0; }
+  .lead { color:var(--muted); margin:6px 0 20px; }
+  .langsw { display:inline-flex; gap:2px; border:1px solid var(--brd); border-radius:999px; padding:3px; }
+  .langsw button { background:none; border:0; color:var(--muted); font:600 12px/1 system-ui; padding:5px 9px; border-radius:999px; cursor:pointer; }
+  .langsw button.on { background:rgba(45,212,168,.18); color:var(--accent); }
+  button.main, .act button { background:var(--accent); color:#042018; border:0; border-radius:9px; padding:10px 16px; font-weight:650; cursor:pointer; }
+  .act button.ghost { background:none; color:var(--ink); border:1px solid var(--brd); }
+  button:disabled { opacity:.5; cursor:default; }
+  .who { font-family:var(--mono); font-size:13px; color:var(--muted); margin:12px 0; word-break:break-all; }
+  .plug { background:var(--panel); border:1px solid var(--brd); border-radius:12px; padding:16px; margin:14px 0; }
+  .plug h2 { font-size:17px; margin:0 0 4px; }
+  .meta { color:var(--faint); font-size:13px; margin-bottom:10px; }
+  .act { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+  .act input { width:84px; background:#07100d; color:var(--ink); border:1px solid var(--brd); border-radius:8px; padding:8px; }
+  .out { margin-top:12px; font-size:14px; white-space:pre-wrap; }
+  .ok { color:var(--accent); } .err { color:var(--bad); } .note { color:var(--warn); }
+  table { border-collapse:collapse; width:100%; font-size:13px; margin-top:8px; }
+  td, th { text-align:right; padding:3px 6px; border-bottom:1px solid rgba(255,255,255,.05); }
+  td:first-child, th:first-child { text-align:left; }
+  .bar { height:8px; background:var(--accent); border-radius:4px; }
+  footer { color:var(--faint); font-size:13px; margin-top:28px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1 data-i18n="title">Your plugs</h1>
+    <span class="langsw" aria-label="Language">
+      <button type="button" data-lang="en">EN</button><button type="button" data-lang="ru">RU</button><button type="button" data-lang="es">ES</button><button type="button" data-lang="fr">FR</button><button type="button" data-lang="zh">ZH</button>
+    </span>
+  </header>
+  <p class="lead" data-i18n="lead">Only you switch your plugs. Each command is signed by your wallet (EIP-712) — no hub, no payment, no account.</p>
+  <button class="main" id="connect" type="button" data-i18n="connect">Connect wallet</button>
+  <div class="who" id="who"></div>
+  <div id="plugs"></div>
+  <p class="out err" id="fatal" hidden></p>
+  <footer data-i18n="foot">The signature names this GAIA, the plug, the command and the time; it is good for two minutes, once. Nobody else's wallet can switch a plug you own.</footer>
+</div>
+<script src="/owner/owner.js"></script>
+</body>
+</html>

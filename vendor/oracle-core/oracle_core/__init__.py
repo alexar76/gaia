@@ -12,12 +12,14 @@ Build an oracle by declaring capabilities and handing them to ``create_app``:
     app = create_app(spec)
 
 You get signed manifest + invoke (with receipts + measured metrics) + .well-known
-+ rate-limiting + (optional) hybrid PQC for free.
++ rate-limiting + (optional) hybrid PQC for free, and a price gate that serves a priced
+capability only to a call a trusted hub signed (``oracle_core.price_gate``).
 """
 
 from oracle_core.app import create_app
 from oracle_core.hub_client import HubClient
 from oracle_core.metrics import Metrics
+from oracle_core.price_gate import PriceGate
 from oracle_core.protocol import Capability, OracleSpec, Protocol, input_hash, utc_now_z
 from oracle_core.ratelimit import RateLimiter
 from oracle_core.signing import Signer, pqc_available
@@ -35,6 +37,7 @@ __all__ = [
     "pqc_available",
     "FreeTierExceeded",
     "PaidTierPolicy",
+    "PriceGate",
     "enforce_free_tier",
     "input_hash",
     "utc_now_z",
@@ -46,4 +49,4 @@ __all__ = [
 #: against, and there was no way to catch a bump made in one place and not the other. That is
 #: not hypothetical: aimarket-agent shipped 2.1.2 declaring __version__ = "2.1.1", which is why
 #: it has a self-consistency test and this now does too.
-__version__ = "0.4.0"
+__version__ = "0.6.0"

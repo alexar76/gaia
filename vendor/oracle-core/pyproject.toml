@@ -16,7 +16,11 @@ name = "aimarket-oracle-core"
 # 0.2.0 is already on PyPI, and a capability constructed with any of the new fields raises
 # TypeError against it — so chronos and aestus, the two that use them, floor at >=0.3. The
 # other 15 stay at >=0.2 deliberately: a floor nothing needs is a floor that misleads.
-version = "0.4.0"
+# 0.5.0: `oracle_core.price_gate` is new public API and `create_app` gained `price_gate`. With
+# no ORACLE_TRUSTED_HUBS and no ORACLE_PRICE_GATE it is off and behaviour is exactly 0.4.0's.
+# 0.6.0: `oracle_core.calls` (the call log, /ops/v1/*) and `oracle_core.storage` are new, and
+# `create_app` gained `call_log`. Without ORACLE_CALLS=1 nothing is written: 0.5.0's behaviour.
+version = "0.6.0"
 description = "Shared AIMarket v2 infrastructure for the oracle family"
 readme = "README.md"
 license = "Apache-2.0"
@@ -32,6 +36,8 @@ dependencies = [
 [project.optional-dependencies]
 dev = ["pytest>=8.3.0", "pytest-asyncio>=0.24.0", "httpx>=0.27.0"]
 pqc = ["dilithium-py>=1.4.0"]
+# The call log on Postgres (ORACLE_DATABASE_URL=postgresql://…); SQLite needs nothing.
+postgres = ["psycopg[binary]>=3.1"]
 
 [build-system]
 requires = ["hatchling"]

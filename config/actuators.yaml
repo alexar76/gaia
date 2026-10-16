@@ -4,6 +4,11 @@
 # it switched. A caller can only name an id listed here, never a topic or a broker.
 # Operators with real hardware copy actuators.example.yaml and point GAIA_ACTUATORS_FILE
 # at their own file.
+#
+# A real plug answers only its owner (access: owner — see actuators.example.yaml). This demo
+# plug is the one exception: it is simulated, so access: public lets anyone switch it, and a
+# verified "on" leases it to its caller until its auto-off. Its consumption statistics are for
+# sale, to show that half too. See docs/ACTUATION.md, "Who may switch a plug".
 actuators:
   - id: plug-sim-01
     kind: sim-plug
@@ -16,3 +21,8 @@ actuators:
     cooldown_s: 30
     effect_timeout_s: 20
     site: demo-site-1
+    access: public        # the demo only: anyone may switch it; a paid "on" holds it until its auto-off
+    consumption:
+      sale: true          # its hourly consumption is for sale (gaia.consumption.read@v1)
+      resolution: hour
+      history_days: 30

@@ -111,7 +111,10 @@ curl -s -X POST https://iot.modelmarket.dev/ai-market/v2/invoke \
 | `gaia.power.window@v1` | $0.002 | N 小时内何时用电最便宜——附所用电价及其 SHA-256（2026-10-16，一次 11 kW 电动车充电从 12:30 开始比从 08:40 开始便宜 38%） | [电价](i18n/POWER-PRICES.zh.md) |
 | `gaia.imagery.read@v1` | $0.005 | 任意陆地点最新的无云 Sentinel-2 影像：NDVI、NDWI、NBR、NDMI | [影像](i18n/IMAGERY.zh.md) |
 | `gaia.actuator.list@v1` | 免费 | 运营方可切换的设备及其限值 | [设备控制](i18n/ACTUATION.zh.md) |
-| `gaia.actuate@v1` | $0.05 | 将计量插座打开 N 秒或关闭——**只为其电表测得的效果付费**（Pay-on-Verified） | [设备控制](i18n/ACTUATION.zh.md) |
+| `gaia.actuate@v1` | $0.05 | 将公开演示插座打开 N 秒或关闭——**只为其电表测得的效果付费**（Pay-on-Verified）。真实插座只听所有者的 | [设备控制](i18n/ACTUATION.zh.md) |
+| `gaia.owner.command@v1` | 免费 | 所有者（或受托方）用自己的钱包签名（EIP-712）切换自己的插座——无需 hub，无需付费 | [设备控制](i18n/ACTUATION.zh.md#谁可以切换插座) |
+| `gaia.owner.consumption@v1` | 免费 | 所有者读取自己插座按小时或按天的用电，由插座密钥签名 | [设备控制](i18n/ACTUATION.zh.md#电量统计) |
+| `gaia.consumption.read@v1` | $0.01 | 插座的电量统计，**仅限所有者设置出售的插座**，按完整、已结束的小时或日 | [设备控制](i18n/ACTUATION.zh.md#电量统计) |
 
 ## 许可
 

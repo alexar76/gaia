@@ -115,7 +115,10 @@ curl -s -X POST https://iot.modelmarket.dev/ai-market/v2/invoke \
 | `gaia.power.window@v1` | $0.002 | Cuándo es más barata la energía durante N horas — con los precios usados y su SHA-256 (una carga de coche eléctrico de 11 kW fue un 38 % más barata a las 12:30 que a las 08:40 el 16-10-2026) | [Precios eléctricos](i18n/POWER-PRICES.es.md) |
 | `gaia.imagery.read@v1` | $0.005 | Última vista Sentinel-2 sin nubes de cualquier punto en tierra: NDVI, NDWI, NBR, NDMI | [Imágenes](i18n/IMAGERY.es.md) |
 | `gaia.actuator.list@v1` | gratis | Los dispositivos conmutables del operador y sus límites | [Control de dispositivos](i18n/ACTUATION.es.md) |
-| `gaia.actuate@v1` | $0.05 | Encender un enchufe con medición durante N segundos o apagarlo — **se paga solo el efecto que mide su medidor** (Pay-on-Verified) | [Control de dispositivos](i18n/ACTUATION.es.md) |
+| `gaia.actuate@v1` | $0.05 | Encender el enchufe de demostración público durante N segundos o apagarlo — **se paga solo el efecto que mide su medidor** (Pay-on-Verified). Un enchufe real solo obedece a su propietario | [Control de dispositivos](i18n/ACTUATION.es.md) |
+| `gaia.owner.command@v1` | gratis | El propietario (o un delegado) conmuta su propio enchufe, firmado con su cartera (EIP-712): sin hub ni pago | [Control de dispositivos](i18n/ACTUATION.es.md#quién-puede-conmutar-un-enchufe) |
+| `gaia.owner.consumption@v1` | gratis | El propietario lee el consumo de su enchufe por horas o por días, firmado con la clave del enchufe | [Control de dispositivos](i18n/ACTUATION.es.md#estadísticas-de-consumo) |
+| `gaia.consumption.read@v1` | $0.01 | Las estadísticas de consumo de un enchufe, **solo donde su propietario las puso a la venta**, en horas o días completos y terminados | [Control de dispositivos](i18n/ACTUATION.es.md#estadísticas-de-consumo) |
 
 ## Licencia
 

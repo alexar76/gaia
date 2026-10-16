@@ -90,6 +90,22 @@ class GatewayRuntime:
         from gaia.actuation import build_controller
 
         self.actuation = build_controller(self.fleet, self.clock, key_dir=key_dir)
+        # With actuation on: the plugs' consumption store (oracle_core.storage: SQLite in the
+        # data directory, Postgres via ORACLE_DATABASE_URL) and the owner requests' nonces.
+        # The sampler is started by gaia.main in the serving process, never here.
+        self.consumption = None
+        self.owner_nonces = None
+        if self.actuation is not None:
+            from pathlib import Path
+
+            from oracle_core.storage import open_store
+
+            from gaia.consumption import ConsumptionStore
+            from gaia.owner_auth import NonceBook
+
+            data_dir = Path(os.environ.get("GAIA_ACTUATION_DIR", "") or Path(key_dir).parent)
+            self.consumption = ConsumptionStore(open_store(data_dir=data_dir))
+            self.owner_nonces = NonceBook(data_dir / "owner-nonces.json")
 
         self.verifier = PlausibilityVerifier(self.fleet)
         self.service = VerifierService(self.verifier)
@@ -1627,7 +1643,10 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
     controller = getattr(runtime, "actuation", None)
     if controller is not None and controller.specs:
         from gaia.actuation_capabilities import (
-            ACTUATE_IN, ACTUATE_OUT, ACTUATE_PRICE_USD, LIST_OUT, actuate_handler, list_handler,
+            ACTUATE_IN, ACTUATE_OUT, ACTUATE_PRICE_USD, CONSUMPTION_IN, CONSUMPTION_OUT,
+            CONSUMPTION_PRICE_USD, LIST_OUT, OWNER_COMMAND_IN, OWNER_CONSUMPTION_IN,
+            actuate_handler, consumption_read_handler, list_handler, owner_command_handler,
+            owner_consumption_handler,
         )
 
         caps.append(Capability(
@@ -1651,6 +1670,41 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=ACTUATE_IN, output_schema=ACTUATE_OUT,
             price_per_call_usd=ACTUATE_PRICE_USD, p50_latency_ms=1500,
         ))
+        store = getattr(runtime, "consumption", None)
+        nonces = getattr(runtime, "owner_nonces", None)
+        if store is not None and nonces is not None:
+            caps.append(Capability(
+                capability_id="gaia.owner.command@v1",
+                description="Free, for a plug's owner only: switch your own plug 'on' for "
+                            "duration_s or 'off', signed with your wallet (EIP-712 OwnerRequest, "
+                            "domain GAIA/1/8453; the owner or a delegate named in the operator's "
+                            "file). No hub, no payment. Returns the same evidence as gaia.actuate@v1.",
+                handler=owner_command_handler(controller, url.rstrip("/"), nonces),
+                product_id=product, input_schema=OWNER_COMMAND_IN, output_schema=ACTUATE_OUT,
+                price_per_call_usd=0.0, p50_latency_ms=1500,
+            ))
+            caps.append(Capability(
+                capability_id="gaia.owner.consumption@v1",
+                description="Free, for a plug's owner only: your plug's consumption in hourly or "
+                            "daily buckets (energy, mean and peak power, minutes on), signed by "
+                            "the plug's device key. Request signed with your wallet (EIP-712).",
+                handler=owner_consumption_handler(controller, store, url.rstrip("/"), nonces),
+                product_id=product, input_schema=OWNER_CONSUMPTION_IN, output_schema=CONSUMPTION_OUT,
+                price_per_call_usd=0.0, p50_latency_ms=20,
+            ))
+            if any(spec.consumption_sale for spec in controller.specs.values()):
+                caps.append(Capability(
+                    capability_id="gaia.consumption.read@v1",
+                    description="A plug's consumption statistics — only where its owner put them "
+                                "on sale, no finer than the owner allows (hour or day) and no "
+                                "further back than the owner's history limit: energy, mean and "
+                                "peak power, minutes on, in whole finished UTC hours or days, "
+                                "signed by the plug's device key. Switching a real plug is never "
+                                "for sale.",
+                    handler=consumption_read_handler(controller, store),
+                    product_id=product, input_schema=CONSUMPTION_IN, output_schema=CONSUMPTION_OUT,
+                    price_per_call_usd=CONSUMPTION_PRICE_USD, p50_latency_ms=20,
+                ))
 
     from gaia.devices.live_imagery import Sentinel2Point
 

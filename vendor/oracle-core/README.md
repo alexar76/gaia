@@ -96,9 +96,57 @@ question, not a code one — `ORACLE_PAID_TIER_SECRET` or
 ever lifted until an operator says so. Full rationale and the measured numbers:
 `oracle_core/tiers.py` and `docs/free-and-paid-tiers.md` in the monorepo.
 
+## Price gate
+
+A price in the manifest is a promise only if something enforces it. This core takes no
+payment itself; the hub that sells your capabilities does. But your invoke URL is
+public, and until 0.5.0 a caller who skipped the hub got every priced capability for
+free (seen on GAIA and EMPORION, 2026-10-16).
+
+With the gate on, a capability priced above zero is served only to:
+
+- a call a hub you trust signed (it took the payment, or chose to give a trial), or
+- a caller you nominated with `ORACLE_PAID_TIER_SECRET` (your own services).
+
+Anyone else gets `402` with `payment_ways` naming the hubs that sell it. A signature
+that does not hold (unknown hub, wrong key, stale, other capability or input, other
+provider, replayed) gets `401` and the reason. Free capabilities are never gated.
+
+| variable | meaning |
+|---|---|
+| `ORACLE_TRUSTED_HUBS` | `url=key,url=key`: each hub's URL and its Ed25519 `signer_public_key` from its `/.well-known/ai-market.json`. Repeat a URL to accept two keys during a rotation. |
+| `ORACLE_PRICE_GATE` | `enforce`, `report` or `off`. Unset: `enforce` if a hub is trusted, `off` if none is. `report` serves everything and logs what it would refuse; run it on production before `enforce`. Anything else reads as `enforce`. |
+| `ORACLE_HUB_AUDIENCES` | Extra base URLs you answer at, for a hub that reaches you under another name than `public_url`. |
+| `ORACLE_HUB_MAX_SKEW_S` | Clock tolerance for the hub's timestamp, default 120. |
+
+Behind your own hub, pin your own hub. The hub side (`aimarket_hub/provider_request_auth.py`)
+signs local listings always and federated peers only when it is their seller of record
+(`AIMARKET_SELLS_FOR`). The wire format is in `oracle_core/price_gate.py`, and both sides
+pin the same test vector.
+
+## Call log
+
+Since 0.6.0 every invoke can be written down — served, refused by the price gate, over a limit,
+failed — as one row in SQLite (default) or Postgres: capability, outcome, HTTP status, who vouched
+for the call, the price of a served priced call, latency, a salted hash of the client address and
+the SHA-256 of the input. Never the input itself and never an IP address; an error message that
+quotes the input is scrubbed first. The operator reads `/ops/v1/stats`, `/ops/v1/calls` and
+`/ops/v1/metrics` (Prometheus) with `ORACLE_OPS_TOKEN`.
+
+| variable | meaning |
+|---|---|
+| `ORACLE_CALLS` | `1` keeps the log (off by default in the library) |
+| `ORACLE_DATA_DIR` | where the SQLite file and the hash salt live |
+| `ORACLE_DATABASE_URL` | `postgresql://…` for Postgres (extra `postgres`) |
+| `ORACLE_CALLS_RETENTION_DAYS` | days to keep rows, default 90 |
+| `ORACLE_OPS_TOKEN` | Bearer token of `/ops/v1/*`; without it they answer 503 |
+
+Details, in five languages: [docs/CALL-LOG.md](docs/CALL-LOG.md).
+
 ## Extras
 
 - `pqc` — hybrid post-quantum signatures (`dilithium-py`)
+- `postgres` — the call log (and other stores) on Postgres (`psycopg` 3)
 - `dev` — pytest, pytest-asyncio, httpx
 
 Apache-2.0.

@@ -63,6 +63,14 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("GAIA_USGS_WQ_ENABLED", "1")
     monkeypatch.setenv("GAIA_OM_ALLOW_HOSTED_COMMERCIAL", "1")  # test-only; no OM call is made
 
+    # GAIA enforces its price gate with this hub pinned, as production will: every call
+    # below reaches GAIA's priced capabilities only because the hub signed it
+    # (oracle_core.price_gate). The hub's key is made first so GAIA can pin it.
+    monkeypatch.setenv("AIMARKET_HUB_URL", "http://hub.test")
+    hub_signer = Signer(str(tmp_path / "hub.key"))
+    monkeypatch.setenv("ORACLE_TRUSTED_HUBS", f"http://hub.test={hub_signer.public_key_b64}")
+    monkeypatch.setenv("ORACLE_PRICE_GATE", "enforce")
+
     # ── GAIA gateway with a warmed fleet (verifier needs history)
     runtime = GatewayRuntime(key_dir=str(tmp_path / "devkeys"))
     runtime.warm_up(40)
@@ -118,7 +126,8 @@ def world(tmp_path, monkeypatch):
     hub_app = create_app(config=config, db=db, signer=Signer(config.signing_key_path))
 
     with TestClient(hub_app) as client:
-        yield SimpleNamespace(client=client, db=db, runtime=runtime)
+        yield SimpleNamespace(client=client, db=db, runtime=runtime, gaia_app=gaia_app,
+                              tmp_path=tmp_path)
 
 
 def _open_channel(client):
@@ -416,3 +425,55 @@ def test_offline_sensor_costs_nothing_without_pay_on_verified(world):
     assert "receipt" not in r.json(), "no signed receipt for work that never happened"
     ch = channels_mod._ledger.get(channel_id)
     assert ch["balance_usd"] == pytest.approx(5.0)  # no debit without a verifier to refund it
+
+
+# ── The price gate: the hub's 402 is no longer the only door ──────────────────────
+# Found 2026-10-16: an unpaid POST straight to GAIA got the reading the hub sells. With
+# the gate on (the fixture pins this hub), GAIA serves priced capabilities only to a
+# call the hub signed.
+
+
+def test_walking_around_the_hub_gets_a_402_that_points_back_to_it(world):
+    direct = TestClient(world.gaia_app)
+    r = direct.post("/ai-market/v2/invoke", json={
+        "capability_id": "gaia.weather.read@v1", "input": {"device_id": "ws-01"}})
+    assert r.status_code == 402, r.text
+    body = r.json()
+    assert body["error"] == "payment_required" and body["needed"] == pytest.approx(0.001)
+    assert body["payment_ways"][0]["hub_url"] == "http://hub.test"
+    assert body["payment_ways"][0]["source_hub"] == "http://gaia.test"
+    assert "reading" not in r.text
+    assert "x-provider-signature" not in r.headers  # nothing was served, nothing is signed
+
+    # The free registry stays open to everyone.
+    fleet = direct.post("/ai-market/v2/invoke", json={"capability_id": "gaia.fleet.status@v1"})
+    assert fleet.status_code == 200 and fleet.json()["ok"] is True
+
+    doc = direct.get("/.well-known/ai-market.json").json()
+    assert doc["price_gate"]["mode"] == "enforce" and doc["price_gate"]["hubs"] == ["http://hub.test"]
+
+
+def test_a_hub_gaia_does_not_trust_cannot_sell_it_and_the_buyer_pays_nothing(world):
+    world.gaia_app.state.price_gate.verifier.trusted = {}
+    channel_id, secret = _open_channel(world.client)
+    r = _buy_reading(world.client, channel_id, secret)
+    assert r.status_code == 502, r.text
+    assert "401" in r.text
+    ch = channels_mod._ledger.get(channel_id)
+    assert ch["used_usd"] == pytest.approx(0.0)
+    assert ch["balance_usd"] == pytest.approx(5.0)
+    assert "verify_passed" not in _reputation(world.db)
+
+
+def test_the_hubs_free_trial_still_reaches_gaia(world, monkeypatch):
+    import aimarket_hub.sandbox_trials as st
+
+    monkeypatch.setattr(st, "_ledger", st.SandboxTrialLedger(str(world.tmp_path / "trials.db")))
+    r = world.client.post(
+        "/ai-market/v2/invoke", headers={"X-AIMarket-Sandbox-Visitor": "vis-gate-trial-01"},
+        json={"product_id": "gaia.gateway", "capability_id": "gaia.weather.read@v1",
+              "source_hub": "local", "input": {"device_id": "ws-01"}},
+    )
+    assert r.status_code == 200, r.text
+    assert r.json()["result"]["reading"]["device_id"] == "ws-01"
+    assert st.sandbox_quota("vis-gate-trial-01")["used"] == 1

@@ -138,6 +138,27 @@ services:
       # every caller (503) until this is set; a hub whose AIMARKET_VERIFY_ROUTES sends
       # gaia.actuate@v1 here holds the same value in the env var its route names.
       GAIA_VERIFY_TOKEN: ${GAIA_VERIFY_TOKEN:-}
+      # The price gate (oracles/core/oracle_core/price_gate.py): priced capabilities answer
+      # only a call a hub in ORACLE_TRUSTED_HUBS ("url=ed25519 key,…") signed, or 402. Empty
+      # leaves it off, as before. ORACLE_PRICE_GATE=report logs what it would refuse first.
+      ORACLE_TRUSTED_HUBS: ${ORACLE_TRUSTED_HUBS:-}
+      ORACLE_PRICE_GATE: ${ORACLE_PRICE_GATE:-}
+      ORACLE_HUB_AUDIENCES: ${ORACLE_HUB_AUDIENCES:-}
+      # The operator's own direct reader (ATLAS) is nominated with this; it sends it as
+      # X-AIMarket-Paid-Tier (ATLAS_GAIA_PAID_TIER_SECRET). It also lifts free_tier_max.
+      ORACLE_PAID_TIER_SECRET: ${ORACLE_PAID_TIER_SECRET:-}
+      # The call log (oracle_core.calls): every invoke written down, SQLite in /data unless
+      # ORACLE_DATABASE_URL names Postgres; the operator reads it at /ops/v1/* with
+      # ORACLE_OPS_TOKEN (the routes answer 503 without one). Secrets come from the env file.
+      ORACLE_CALLS: ${ORACLE_CALLS:-1}
+      ORACLE_DATA_DIR: /data
+      ORACLE_DATABASE_URL: ${ORACLE_DATABASE_URL:-}
+      ORACLE_OPS_TOKEN: ${ORACLE_OPS_TOKEN:-}
+      ORACLE_CALLS_RETENTION_DAYS: ${ORACLE_CALLS_RETENTION_DAYS:-90}
+      # A plug's consumption, sampled into hourly buckets (gaia/consumption.py); sold only
+      # where its owner set consumption.sale in the actuator file.
+      GAIA_CONSUMPTION_PRICE_USD: ${GAIA_CONSUMPTION_PRICE_USD:-0.01}
+      GAIA_CONSUMPTION_SAMPLE_S: ${GAIA_CONSUMPTION_SAMPLE_S:-60}
     volumes:
       - gaia-keys:/data
     ports:

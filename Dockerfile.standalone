@@ -24,7 +24,7 @@ COPY vendor/oracle-core /app/oracle-core
 COPY pyproject.toml README.md LICENSE ./
 COPY gaia ./gaia
 
-RUN pip install --no-cache-dir -e "/app/oracle-core[pqc]" -e ".[mqtt]" \
+RUN pip install --no-cache-dir -e "/app/oracle-core[pqc,postgres]" -e ".[mqtt]" \
     && groupadd --system --gid 10001 gaia \
     && useradd --system --uid 10001 --gid gaia --shell /usr/sbin/nologin --home-dir /app gaia \
     && mkdir -p /data \
@@ -35,6 +35,8 @@ USER gaia:gaia
 ENV GAIA_PORT=9320
 ENV GAIA_KEY_DIR=/data/devices
 ENV GAIA_SIGNING_KEY_PATH=/data/gaia_signing_key
+ENV ORACLE_CALLS=1
+ENV ORACLE_DATA_DIR=/data
 COPY --from=gazetteer /g/gazetteer.sqlite /app/gazetteer/gazetteer.sqlite
 ENV GAIA_GAZETTEER_PATH=/app/gazetteer/gazetteer.sqlite
 

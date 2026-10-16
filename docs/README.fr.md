@@ -116,7 +116,10 @@ curl -s -X POST https://iot.modelmarket.dev/ai-market/v2/invoke \
 | `gaia.power.window@v1` | 0,002 $ | Quand l'énergie est la moins chère pendant N heures — avec les prix utilisés et leur SHA-256 (une recharge de 11 kW était 38 % moins chère à 12:30 qu'à 08:40 le 16/10/2026) | [Prix de l'électricité](i18n/POWER-PRICES.fr.md) |
 | `gaia.imagery.read@v1` | 0,005 $ | Dernière vue Sentinel-2 sans nuages de tout point terrestre : NDVI, NDWI, NBR, NDMI | [Imagerie](i18n/IMAGERY.fr.md) |
 | `gaia.actuator.list@v1` | gratuit | Les appareils commutables de l'opérateur et leurs limites | [Pilotage d'appareils](i18n/ACTUATION.fr.md) |
-| `gaia.actuate@v1` | 0,05 $ | Allumer une prise avec mesure pendant N secondes ou l'éteindre — **payé uniquement pour l'effet que mesure son compteur** (Pay-on-Verified) | [Pilotage d'appareils](i18n/ACTUATION.fr.md) |
+| `gaia.actuate@v1` | 0,05 $ | Allumer la prise de démonstration publique pendant N secondes ou l'éteindre — **payé uniquement pour l'effet que mesure son compteur** (Pay-on-Verified). Une prise réelle n'obéit qu'à son propriétaire | [Pilotage d'appareils](i18n/ACTUATION.fr.md) |
+| `gaia.owner.command@v1` | gratuit | Le propriétaire (ou un délégué) commute sa propre prise, signé par son portefeuille (EIP-712) — sans hub ni paiement | [Pilotage d'appareils](i18n/ACTUATION.fr.md#qui-peut-commuter-une-prise) |
+| `gaia.owner.consumption@v1` | gratuit | Le propriétaire lit la consommation de sa prise par heure ou par jour, signée par la clé de la prise | [Pilotage d'appareils](i18n/ACTUATION.fr.md#données-de-consommation) |
+| `gaia.consumption.read@v1` | 0,01 $ | Les données de consommation d'une prise, **seulement là où son propriétaire les a mises en vente**, en heures ou jours complets et terminés | [Pilotage d'appareils](i18n/ACTUATION.fr.md#données-de-consommation) |
 
 ## Licence
 

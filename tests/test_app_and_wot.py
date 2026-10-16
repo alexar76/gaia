@@ -2,16 +2,18 @@
 
 from __future__ import annotations
 
+import base64
 import json
 
 import pytest
+from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
 from fastapi.testclient import TestClient
 from oracle_core.signing import Signer
 
 from gaia.app import build_app
 from gaia.capabilities import GatewayRuntime
 from gaia.middleware import bound_response_canonical
-from gaia.wot import td_to_tools
+from gaia.wot import device_to_td, td_to_tools
 
 
 @pytest.fixture
@@ -111,6 +113,66 @@ def test_wot_export_and_reimport_roundtrip(client):
 
     directory = client.get("/wot").json()
     assert directory["count"] == 4
+
+
+def test_wot_forms_carry_the_catalogue_price_and_point_at_gaia_without_a_gate(client):
+    """Every TD used to say $0.001; the catalogue is the price a buyer is charged."""
+    tools = {t["capability_id"]: t for t in client.get("/ai-market/v2/manifest").json()["tools"]}
+    for td in client.get("/wot").json()["things"]:
+        for prop in td["properties"].values():
+            (form,) = prop["forms"]
+            price = tools[form["aimarket:capability_id"]]["price_per_call_usd"]
+            assert form["href"] == "http://gaia.test/ai-market/v2/invoke"
+            assert form["aimarket:price_per_call_usd"] == price == td["aimarket:price_per_call_usd"]
+            assert "aimarket:source_hub" not in form
+        assert td["description"].endswith("billed per invoke.")
+
+
+def test_with_hubs_named_a_priced_form_points_at_each_hub(rt):
+    device = rt.fleet.get("ws-01")
+    hubs = ["https://hub-a.example", "https://hub-b.example/"]
+    td = device_to_td(device, "https://iot.example/", "gaia.weather.read@v1", 0.001, hubs=hubs)
+    forms = td["properties"]["temperature_c"]["forms"]
+    assert [f["href"] for f in forms] == ["https://hub-a.example/ai-market/v2/invoke",
+                                          "https://hub-b.example/ai-market/v2/invoke"]
+    for f in forms:
+        assert f["aimarket:product_id"] == "gaia.gateway"
+        assert f["aimarket:source_hub"] == "https://iot.example"
+        assert f["aimarket:capability_id"] == "gaia.weather.read@v1"
+        assert f["aimarket:input"] == {"device_id": "ws-01"}
+    assert "through https://hub-a.example" in td["description"]
+    # The importer still reads one tool per property at the form's price.
+    assert {t["price_per_call_usd"] for t in td_to_tools(td, product_id="gaia.gateway")} == {0.001}
+
+    # A free capability is never gated, so it stays at GAIA even with hubs named.
+    free = device_to_td(device, "https://iot.example", "gaia.free.read@v1", 0.0, hubs=hubs)
+    assert [f["href"] for f in free["properties"]["temperature_c"]["forms"]] == [
+        "https://iot.example/ai-market/v2/invoke"]
+
+
+def test_with_the_price_gate_on_the_td_points_where_gaias_402_does(rt, tmp_path, monkeypatch):
+    """A TD reader and a direct caller are sent to the same hub, with the same source_hub."""
+    pytest.importorskip("oracle_core.price_gate")  # a core older than 0.5 has no gate
+    hub_key = base64.b64encode(
+        Ed25519PrivateKey.from_private_bytes(b"\x31" * 32).public_key().public_bytes_raw()).decode()
+    monkeypatch.setenv("GAIA_SIGNING_KEY_PATH", str(tmp_path / "gw.key"))
+    monkeypatch.setenv("ORACLE_TRUSTED_HUBS", f"https://hub.example={hub_key}")
+    monkeypatch.delenv("ORACLE_PRICE_GATE", raising=False)
+    monkeypatch.delenv("ORACLE_PAID_TIER_SECRET", raising=False)
+    client = TestClient(build_app(rt, public_url="http://gaia.test"))
+
+    td = client.get("/wot/ws-01").json()
+    (form,) = td["properties"]["temperature_c"]["forms"]
+    assert form["href"] == "https://hub.example/ai-market/v2/invoke"
+    assert form["aimarket:source_hub"] == "http://gaia.test"
+    assert form["aimarket:product_id"] == "gaia.gateway"
+
+    direct = client.post("/ai-market/v2/invoke", json={
+        "capability_id": form["aimarket:capability_id"], "input": form["aimarket:input"]})
+    assert direct.status_code == 402, direct.text
+    (way,) = direct.json()["payment_ways"]
+    assert way["invoke_url"] == form["href"]
+    assert way["source_hub"] == form["aimarket:source_hub"]
 
 
 def test_sim_control_fault_and_clock(client):
