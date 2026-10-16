@@ -13,6 +13,91 @@ solo ve lo que ese relé conmuta. «Relé encendido» y «la potencia subió» s
 hecho físico. Un medidor de toda la casa no serviría: un hervidor en otra habitación «probaría»
 que el calefactor se encendió.
 
+## Qué se puede controlar
+
+GAIA conmuta un solo tipo de dispositivo: un **enchufe inteligente con medición**. En la
+práctica controla lo que esté enchufado a él, y hay exactamente dos órdenes: `on` durante un
+número limitado de segundos, y `off`. Sin regulación de intensidad, sin consignas de
+temperatura, sin horarios: un horario es simplemente el comprador llamando en el momento que
+elija, por ejemplo al inicio de la ventana que encontró `gaia.power.window@v1`.
+
+### Qué aparatos sirven
+
+Una orden solo se paga cuando el medidor ve su efecto, así que el aparato tiene que **consumir
+una carga estable pocos segundos después de recibir corriente**, y casi nada una vez apagado.
+
+| Detrás del enchufe | ¿Sirve? | Por qué |
+|---|---|---|
+| Calefactor eléctrico, radiador de aceite, toallero | sí | 0,5–2,5 kW estables en cuanto recibe corriente |
+| Termo eléctrico enchufado | mientras calienta | cuando el agua ya está caliente su termostato corta; un `on` entonces no muestra efecto y se rechaza sin coste |
+| Cable de carga de coche eléctrico para enchufe doméstico, cargador de bicicleta o patinete eléctrico | sí, dentro de la capacidad del enchufe y del cable | la batería tiene que cargar de verdad: una llena no consume nada y la orden se rechaza |
+| Bomba, ventilador, deshumidificador | sí | si su consumo supera el `expect_on_w` del operador |
+| Lámpara, luz de cultivo | sí | con un `expect_on_w` bajo, aún muy por encima de `off_max_w` |
+| Frigorífico, congelador, cualquier aparato con termostato propio, modo de espera o arranque suave lento | mal | «encendido» puede no consumir nada durante minutos, así que la mayoría de las órdenes se rechazan |
+| Cargas trifásicas o de conexión fija, cualquier cosa por encima de 16 A | no | un enchufe: como mucho 230 V × 16 A = 3680 W |
+| Cerraduras, válvulas de gas, equipos médicos o de seguridad | **nunca** | nada cuyo encendido o apagado inesperado pueda dañar a alguien cabe en un interruptor de pago |
+
+Un `on` cuyo efecto no se mide **se vuelve a apagar enseguida** y no cuesta nada: un aparato poco
+adecuado le hace perder tiempo al comprador, pero nunca dinero.
+
+```mermaid
+flowchart TD
+    A["Un aparato cuya conmutación quiere vender"] --> S{"¿Es seguro si se enciende o se apaga de forma inesperada?"}
+    S -- no --> N1["Nunca: cerraduras, gas, equipos médicos o de seguridad"]
+    S -- sí --> W{"¿Un enchufe normal, como mucho 3680 W?"}
+    W -- no --> N2["No compatible: trifásico, conexión fija, más de 16 A"]
+    W -- sí --> D{"¿Consumo estable segundos después de encenderlo?"}
+    D -- no --> N3["Poco adecuado: termostato, espera o arranque suave hacen fallar la mayoría de las órdenes, sin coste"]
+    D -- sí --> P{"¿Detrás de un enchufe Tasmota con chip de medición que solo mide esta toma?"}
+    P -- no --> N4["Use un enchufe así: Shelly, Zigbee, Matter y los enchufes en la nube aún no son compatibles"]
+    P -- sí --> OK["Sirve: inclúyalo en su archivo de actuadores"]
+```
+
+### Qué enchufes maneja GAIA
+
+| `kind` en el archivo de actuadores | Qué es |
+|---|---|
+| `tasmota-mqtt` | Un enchufe real con el firmware [Tasmota](https://tasmota.github.io/), accesible a través del broker MQTT propio del operador |
+| `sim-plug` | Un enchufe y un aparato en software (`load_w` de 1 a 3680 W). La demostración pública `plug-sim-01` en iot.modelmarket.dev es de este tipo; cada respuesta suya lleva `"simulated": true` |
+
+Un enchufe Tasmota sirve cuando:
+
+1. **Tiene un chip de medición de energía.** La página principal de Tasmota muestra Voltage,
+   Current y Power, y `Status 8` responde con un bloque `ENERGY`. Un enchufe sin él no puede
+   probar nada, así que toda orden se rechazaría.
+2. **Su medidor solo ve la toma conmutada.** GAIA conmuta `Power1`. Una regleta que mide varias
+   tomas juntas no sirve: otra toma «probaría» la orden.
+3. **Está en el broker MQTT del operador** (`mqtt://` o `mqtts://`) con su propio `%topic%`.
+   GAIA solo le habla allí, y quien llama nombra un id de actuador, nunca un topic ni un broker.
+4. **Está dimensionado para la carga.** Las cargas largas cerca de 16 A calientan los enchufes
+   domésticos; respete la capacidad del enchufe y, para cargar un coche eléctrico, la del cable.
+
+Todo enchufe Tasmota tiene `PulseTime`, su propio temporizador de apagado. GAIA lo envía con el
+`on`, de modo que el enchufe se apaga solo al terminar el tiempo pagado aunque GAIA, el broker o
+la red hayan desaparecido. Ese temporizador admite como mucho 64 800 s, así que un `on` dura como
+máximo 18 horas.
+
+Aún no son compatibles: Shelly, Zigbee, Matter, Home Assistant y los enchufes que solo funcionan
+en la nube, los enchufes con varios relés por medidor, los reguladores de intensidad, los
+termostatos y las válvulas. Cada uno necesita su propio controlador y su propia forma de probar
+el efecto.
+
+### Qué decide el operador para cada actuador
+
+| Campo | Significado | Regla (por defecto) |
+|---|---|---|
+| `expect_on_w` | potencia medida que prueba «encendido» | por debajo del consumo estable del aparato, por encima de lo que el enchufe consume en reposo |
+| `off_max_w` | potencia medida que prueba «apagado» | `0 < off_max_w < expect_on_w` (10 W) |
+| `min_on_s`, `max_on_s` | cuánto puede durar un `on` | `0 < min ≤ max ≤ 64800` (10 s, 900 s) |
+| `cooldown_s` | pausa entre dos órdenes al mismo actuador | `≥ 0` (30 s) |
+| `effect_timeout_s` | cuánto espera GAIA a que aparezca el efecto | 1–120 s (20 s) |
+| `latitude`, `longitude` | opcional: dónde lo muestra ATLAS | — |
+
+Con el control de dispositivos activado, un archivo de actuadores que incumpla estas reglas
+detiene GAIA al arrancar, en lugar de poner en marcha un interruptor cuyo «encendido» y
+«apagado» podrían parecerse. Un enchufe bien descrito al que no se puede llegar se omite y queda
+registrado, y el resto de GAIA sigue funcionando.
+
 ## Capacidades
 
 | Capacidad | Precio | Qué hace |
@@ -57,8 +142,10 @@ sequenceDiagram
 ```
 
 Sin bloque `verify` el efecto sigue decidiendo el cobro: ante un efecto no probado GAIA responde
-`ok:false`, y el hub no cobra nada por `ok:false`. El bloque `verify` añade una comprobación
-**independiente** de las pruebas antes de que se mueva el dinero.
+`ok:false`, y el hub no cobra nada por `ok:false`. El bloque `verify` añade una segunda
+comprobación antes de que se mueva el dinero: el hub envía las pruebas al verificador propio de
+GAIA, que las vuelve a comprobar con exactitud (abajo); un hub enruta `gaia.actuate@v1` hacia él con
+`AIMARKET_VERIFY_ROUTES` en lugar de a su jurado de LLM.
 
 ## Controles de seguridad
 
@@ -170,6 +257,18 @@ La demostración pública funciona con un enchufe **simulado** (`plug-sim-01`, u
    GAIA_MQTT_USERNAME=gaia            # la contraseña, de su almacén de secretos, nunca en un archivo de git
    GAIA_ACTUATION_TOKEN=…             # token Bearer para la API del interruptor de emergencia
    ```
+4. **El hub que la vende con Pay-on-Verified** enruta la capacidad al verificador de esta GAIA, para
+   que el dinero lo decida una comprobación exacta y no un jurado de LLM:
+   ```
+   # GAIA: en producción /v1/verify rechaza a todos hasta que esto esté definido
+   GAIA_VERIFY_TOKEN=…                # un secreto aleatorio, desde un archivo 0600
+   # archivo de entorno del hub (una línea, sin comillas: --env-file toma los valores literalmente)
+   AIMARKET_VERIFY_ROUTES={"gaia.actuate@v1": {"url": "https://<gaia>", "verifier_id": "gaia.verify@v1", "key_env": "AIMARKET_VERIFY_GAIA_TOKEN"}}
+   AIMARKET_VERIFY_GAIA_TOKEN=…       # el mismo valor que GAIA_VERIFY_TOKEN
+   ```
+   Sin el token en el hub, el hub rechaza el bloque `verify` antes de conmutar nada; con uno
+   incorrecto, GAIA responde 401 y se reembolsa al comprador. Véanse
+   [las rutas de verificador del hub](https://github.com/alexar76/aimarket-hub/blob/main/docs/pay-on-verified.md#verifier-routes).
 
 El encendido se envía como `Backlog PulseTime1 <duración>; Power1 ON`, así que **el enchufe se
 apaga solo** al terminar la duración pagada aunque GAIA, el broker o la red desaparezcan. GAIA
@@ -196,6 +295,11 @@ Cada orden, resultado, parada y reanudación se añade a `actuation.jsonl` en el
   pueda mentir. Que medidor y relé sean un solo dispositivo es lo que mantiene la afirmación acotada.
 - El efecto prueba que pasó potencia por el enchufe, no qué hizo el aparato con ella.
 - El enchufe de la demostración pública es simulado (`SIM`): su calefactor solo existe en software, y cada respuesta lo indica (`"simulated": true`).
+- Con la ruta, GAIA es a la vez vendedor y juez de `gaia.actuate@v1`. Es aceptable solo porque el
+  veredicto es una comprobación determinista de pruebas firmadas que cualquiera puede repetir
+  (`POST /v1/verify`, o `gaia.verify@v1` con el paquete), y porque un comprador puede apelar un
+  aprobado ante el tribunal de apelación del hub —otro verificador— cuando el hub tiene uno. Ningún
+  verificador, ni GAIA ni un LLM, detecta pruebas falsificadas por quien tenga la clave del enchufe.
 
 W3C WoT: la Thing Description de cada enchufe (`GET /wot/<id>`) incluye las **acciones**
 `switchOn` / `switchOff`, cuyos formularios son invocaciones pagadas de `gaia.actuate@v1`.

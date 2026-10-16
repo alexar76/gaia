@@ -134,6 +134,10 @@ services:
       GAIA_MQTT_BROKER: ${GAIA_MQTT_BROKER:-}
       GAIA_MQTT_USERNAME: ${GAIA_MQTT_USERNAME:-}
       GAIA_MQTT_PASSWORD: ${GAIA_MQTT_PASSWORD:-}
+      # The Pay-on-Verified verifier slot (POST /v1/verify). Under AIFACTORY_PROD it refuses
+      # every caller (503) until this is set; a hub whose AIMARKET_VERIFY_ROUTES sends
+      # gaia.actuate@v1 here holds the same value in the env var its route names.
+      GAIA_VERIFY_TOKEN: ${GAIA_VERIFY_TOKEN:-}
     volumes:
       - gaia-keys:/data
     ports:

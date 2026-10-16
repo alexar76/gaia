@@ -8,6 +8,11 @@
 
 The price floor stays at the hub's production default ($0.05) so this proves the
 SKU's price really clears it.
+
+GAIA judges gaia.actuate@v1 through the hub's verifier ROUTE (AIMARKET_VERIFY_ROUTES), as a
+hub that executes this capability is meant to be configured, not as the hub's default
+verifier: the default here is a "Metis" that must never be asked. GAIA's /v1/verify is fail-closed (GAIA_VERIFY_AUTH=1, as
+in production) and the hub sends the route's token as its Bearer.
 """
 
 from __future__ import annotations
@@ -34,6 +39,9 @@ from aimarket_hub.database import HubDatabase
 from aimarket_hub.models import Capability
 from aimarket_hub.signing import Signer
 
+METIS_URL = "http://metis.must-not-be-asked"
+VERIFY_TOKEN = "gaia-verify-e2e-token"
+
 
 @pytest.fixture
 def world(tmp_path, monkeypatch):
@@ -45,8 +53,14 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("AIMARKET_AUTO_CRAWL", "0")
     monkeypatch.delenv("AIMARKET_VERIFY_MIN_PRICE_USD", raising=False)  # production floor
     monkeypatch.setenv("AIMARKET_VERIFY_RETRY_BACKOFF_S", "0.05")
-    monkeypatch.setenv("AIMARKET_VERIFY_METIS_URL", "http://gaia.verify")
-    monkeypatch.setenv("AIMARKET_VERIFY_VERIFIER_ID", "gaia.verify@v1")
+    monkeypatch.setenv("AIMARKET_VERIFY_METIS_URL", METIS_URL)
+    monkeypatch.delenv("AIMARKET_VERIFY_VERIFIER_ID", raising=False)
+    monkeypatch.setenv("AIMARKET_VERIFY_ROUTES", json.dumps({"gaia.actuate@v1": {
+        "url": "http://gaia.verify", "verifier_id": "gaia.verify@v1",
+        "key_env": "AIMARKET_VERIFY_GAIA_TOKEN"}}))
+    monkeypatch.setenv("AIMARKET_VERIFY_GAIA_TOKEN", VERIFY_TOKEN)
+    monkeypatch.setenv("GAIA_VERIFY_TOKEN", VERIFY_TOKEN)
+    monkeypatch.setenv("GAIA_VERIFY_AUTH", "1")
     monkeypatch.setenv("AIMARKET_SUPPLY_REQUIRE_RESPONSE_SIG", "1")
     monkeypatch.setenv("GAIA_SIGNING_KEY_PATH", str(tmp_path / "gaia_gw.key"))
     monkeypatch.delenv("GAIA_ENABLE_LIVE", raising=False)
@@ -70,6 +84,7 @@ def world(tmp_path, monkeypatch):
             return await c.post(httpx.URL(url).path, json=json, headers=headers or {})
 
     monkeypatch.setattr(outbound_mod, "safe_post", fake_safe_post)
+    verify_calls: list[dict] = []
 
     class _VerifyClient:
         def __init__(self, *a, **k):
@@ -84,6 +99,10 @@ def world(tmp_path, monkeypatch):
             return await self._c.__aexit__(*a)
 
         async def post(self, url, json=None, headers=None):
+            verify_calls.append({"url": url, "authorization": (headers or {}).get("Authorization")})
+            if not url.startswith("http://gaia.verify/"):
+                # The default verifier: answering would let a routing bug pass unnoticed.
+                return httpx.Response(503, json={"detail": "the default verifier was asked"})
             return await self._c.post(httpx.URL(url).path, json=json, headers=headers)
 
     monkeypatch.setattr(vs_mod, "httpx", SimpleNamespace(
@@ -102,7 +121,7 @@ def world(tmp_path, monkeypatch):
     ))
     hub_app = create_app(config=config, db=db, signer=Signer(config.signing_key_path))
     with TestClient(hub_app) as client:
-        yield SimpleNamespace(client=client, db=db, runtime=runtime)
+        yield SimpleNamespace(client=client, db=db, runtime=runtime, verify_calls=verify_calls)
 
 
 def _channel(client):
@@ -115,7 +134,8 @@ def _switch(client, channel_id, secret, command="on", duration=60, verify=True):
             "source_hub": "local",
             "input": {"actuator_id": "plug-sim-01", "command": command, "duration_s": duration}}
     if verify:
-        body["verify"] = {"requested": True, "wait": True,
+        # A bounded wait: a verdict that never comes fails the test in seconds.
+        body["verify"] = {"requested": True, "wait": True, "wait_timeout_s": 30,
                           "intent": "Switch the demo heater on for one minute"}
     return client.post("/ai-market/v2/invoke", json=body, headers={
         "X-Payment-Channel": channel_id, "X-Payment-Channel-Secret": secret})
@@ -139,6 +159,35 @@ def test_a_measured_effect_is_paid_through_escrow(world):
     assert ch["used_usd"] == pytest.approx(0.05) and ch["balance_usd"] == pytest.approx(4.95)
     assert "verify_passed" in _reputation(world.db)
     assert world.runtime.fleet.get("plug-sim-01").relay_is_on
+    # Judged at the route, with the route's token; the default verifier never asked.
+    assert world.verify_calls == [{"url": "http://gaia.verify/v1/verify",
+                                   "authorization": f"Bearer {VERIFY_TOKEN}"}]
+
+
+def test_a_wrong_verify_token_charges_nothing(world, monkeypatch):
+    """GAIA refuses a hub that holds the wrong token (401): the hub settles by policy —
+    refunded, nobody blamed — and does not turn to its default verifier."""
+    monkeypatch.setenv("AIMARKET_VERIFY_GAIA_TOKEN", "not-the-token")
+    channel_id, secret = _channel(world.client)
+    r = _switch(world.client, channel_id, secret)
+    assert r.status_code == 200, r.text
+    env = r.json()["verification"]
+    assert env["status"] == "refunded" and env["verdict"] == "indeterminate"
+    assert env["verifier"] == "gaia.verify@v1"
+    ch = channels_mod._ledger.get(channel_id)
+    assert ch["used_usd"] == pytest.approx(0.0) and ch["balance_usd"] == pytest.approx(5.0)
+    assert _reputation(world.db) == []
+    assert [c["url"] for c in world.verify_calls] == ["http://gaia.verify/v1/verify"]
+
+
+def test_without_the_route_token_the_hub_refuses_before_switching(world, monkeypatch):
+    monkeypatch.delenv("AIMARKET_VERIFY_GAIA_TOKEN")
+    channel_id, secret = _channel(world.client)
+    r = _switch(world.client, channel_id, secret)
+    assert r.status_code == 400 and "verify_unavailable" in r.text
+    assert not world.runtime.fleet.get("plug-sim-01").relay_is_on     # nothing was switched
+    assert channels_mod._ledger.get(channel_id)["balance_usd"] == pytest.approx(5.0)
+    assert world.verify_calls == []
 
 
 def test_no_effect_costs_nothing(world):

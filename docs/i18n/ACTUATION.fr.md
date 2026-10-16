@@ -13,6 +13,92 @@ compteur qui ne voit que ce que ce relais commute. « Relais fermé » et « la 
 sont alors le même fait physique. Un compteur de toute la maison ne conviendrait pas : une
 bouilloire dans une autre pièce « prouverait » que le radiateur s'est allumé.
 
+## Ce que l'on peut commander
+
+GAIA commute un seul type d'appareil : une **prise connectée avec mesure**. En pratique, il
+commande ce qui est branché sur cette prise, et il n'existe que deux commandes : `on` pendant un
+nombre de secondes borné, et `off`. Pas de variation, pas de consigne de température, pas de
+planning : un planning, c'est simplement l'acheteur qui appelle au moment qu'il choisit, par
+exemple au début de la fenêtre trouvée par `gaia.power.window@v1`.
+
+### Quels appareils conviennent
+
+Une commande n'est payée que lorsque le compteur voit son effet ; l'appareil doit donc
+**consommer une charge stable quelques secondes après sa mise sous tension**, et presque rien
+une fois éteint.
+
+| Derrière la prise | Convient ? | Pourquoi |
+|---|---|---|
+| Radiateur électrique, radiateur à bain d'huile, sèche-serviettes | oui | 0,5 à 2,5 kW stables dès la mise sous tension |
+| Chauffe-eau sur prise | tant qu'il chauffe | une fois l'eau chaude, son thermostat coupe ; un `on` ne montre alors aucun effet et il est refusé, sans frais |
+| Câble de recharge de voiture électrique sur prise domestique, chargeur de vélo ou de trottinette électrique | oui, dans la limite de la prise et du câble | la batterie doit vraiment charger : pleine, elle ne consomme rien et la commande est refusée |
+| Pompe, ventilateur, déshumidificateur | oui | si sa consommation dépasse le `expect_on_w` de l'opérateur |
+| Lampe, lampe de culture | oui | avec un `expect_on_w` bas, toujours nettement au-dessus de `off_max_w` |
+| Réfrigérateur, congélateur, tout appareil avec son propre thermostat, une veille ou un démarrage progressif lent | mal | « allumé » peut ne rien consommer pendant des minutes, donc la plupart des commandes sont refusées |
+| Charges triphasées ou raccordées en fixe, tout ce qui dépasse 16 A | non | une prise : 230 V × 16 A = 3680 W au plus |
+| Serrures, vannes de gaz, équipements médicaux ou de sécurité | **jamais** | rien dont l'allumage ou l'arrêt inattendu pourrait blesser quelqu'un n'a sa place sur un interrupteur payant |
+
+Un `on` dont l'effet n'est pas mesuré est **aussitôt éteint** et ne coûte rien : un appareil
+mal adapté fait perdre du temps à l'acheteur, jamais son argent.
+
+```mermaid
+flowchart TD
+    A["Un appareil dont vous voulez vendre la commutation"] --> S{"Sans danger s'il s'allume ou s'éteint de façon inattendue ?"}
+    S -- non --> N1["Jamais : serrures, gaz, équipements médicaux ou de sécurité"]
+    S -- oui --> W{"Une prise ordinaire, 3680 W au plus ?"}
+    W -- non --> N2["Non pris en charge : triphasé, raccordement fixe, plus de 16 A"]
+    W -- oui --> D{"Consommation stable quelques secondes après la mise sous tension ?"}
+    D -- non --> N3["Mal adapté : thermostat, veille ou démarrage progressif font échouer la plupart des commandes, sans frais"]
+    D -- oui --> P{"Derrière une prise Tasmota avec puce de mesure qui ne mesure que cette prise ?"}
+    P -- non --> N4["Utilisez une telle prise : Shelly, Zigbee, Matter et les prises cloud ne sont pas encore pris en charge"]
+    P -- oui --> OK["Convient : ajoutez-le à votre fichier d'actionneurs"]
+```
+
+### Quelles prises GAIA pilote
+
+| `kind` dans le fichier d'actionneurs | Ce que c'est |
+|---|---|
+| `tasmota-mqtt` | Une vraie prise sous firmware [Tasmota](https://tasmota.github.io/), joignable par le broker MQTT de l'opérateur |
+| `sim-plug` | Une prise et un appareil en logiciel (`load_w` de 1 à 3680 W). La démonstration publique `plug-sim-01` sur iot.modelmarket.dev en est une ; chacune de ses réponses porte `"simulated": true` |
+
+Une prise Tasmota convient quand :
+
+1. **Elle a une puce de mesure d'énergie.** La page principale de Tasmota affiche Voltage,
+   Current et Power, et `Status 8` répond avec un bloc `ENERGY`. Une prise qui n'en a pas ne
+   peut rien prouver, et toute commande serait refusée.
+2. **Son compteur ne voit que la prise commutée.** GAIA commute `Power1`. Une multiprise qui
+   mesure plusieurs prises ensemble ne convient pas : une autre prise « prouverait » la commande.
+3. **Elle est sur le broker MQTT de l'opérateur** (`mqtt://` ou `mqtts://`) avec son propre
+   `%topic%`. GAIA ne lui parle que là, et l'appelant nomme un id d'actionneur, jamais un topic
+   ni un broker.
+4. **Elle est dimensionnée pour la charge.** Les charges longues proches de 16 A font chauffer
+   les prises domestiques ; respectez le calibre de la prise et, pour recharger une voiture,
+   celui du câble.
+
+Toute prise Tasmota a `PulseTime`, sa propre minuterie d'arrêt. GAIA l'envoie avec le `on`, si
+bien que la prise s'éteint d'elle-même à la fin de la durée payée, même si GAIA, le broker ou le
+réseau ont disparu. Cette minuterie tient au plus 64 800 s : un `on` dure donc au plus 18 heures.
+
+Pas encore pris en charge : Shelly, Zigbee, Matter, Home Assistant et les prises uniquement
+cloud, les prises à plusieurs relais par compteur, les variateurs, les thermostats et les vannes.
+Chacun demande son propre pilote et sa propre façon de prouver l'effet.
+
+### Ce que l'opérateur fixe pour chaque actionneur
+
+| Champ | Sens | Règle (par défaut) |
+|---|---|---|
+| `expect_on_w` | puissance mesurée qui prouve « allumé » | sous la consommation stable de l'appareil, au-dessus de ce que la prise consomme au repos |
+| `off_max_w` | puissance mesurée qui prouve « éteint » | `0 < off_max_w < expect_on_w` (10 W) |
+| `min_on_s`, `max_on_s` | durée possible d'un `on` | `0 < min ≤ max ≤ 64800` (10 s, 900 s) |
+| `cooldown_s` | pause entre deux commandes au même actionneur | `≥ 0` (30 s) |
+| `effect_timeout_s` | combien de temps GAIA attend l'effet | 1 à 120 s (20 s) |
+| `latitude`, `longitude` | facultatif : où ATLAS l'affiche | — |
+
+Quand la commande des appareils est activée, un fichier d'actionneurs qui enfreint ces règles
+arrête GAIA au démarrage, plutôt que de faire tourner un interrupteur dont « allumé » et
+« éteint » pourraient se ressembler. Une prise bien décrite mais injoignable est ignorée et
+journalisée, et le reste de GAIA fonctionne.
+
 ## Capacités
 
 | Capacité | Prix | Ce qu'elle fait |
@@ -58,7 +144,9 @@ sequenceDiagram
 
 Sans bloc `verify`, l'effet décide toujours du paiement : pour un effet non prouvé GAIA répond
 `ok:false`, et le hub ne débite rien pour un `ok:false`. Le bloc `verify` ajoute une
-vérification **indépendante** des preuves avant que l'argent ne bouge.
+seconde vérification avant que l'argent ne bouge : le hub envoie les preuves au vérificateur
+propre de GAIA, qui les revérifie exactement (ci-dessous) ; un hub y achemine `gaia.actuate@v1` avec
+`AIMARKET_VERIFY_ROUTES` plutôt qu'à son jury de LLM.
 
 ## Contrôles de sécurité
 
@@ -170,6 +258,18 @@ définie dans [`config/actuators.yaml`](../../config/actuators.yaml). Pour du vr
    GAIA_MQTT_USERNAME=gaia            # le mot de passe vient de votre coffre à secrets, jamais d'un fichier dans git
    GAIA_ACTUATION_TOKEN=…             # jeton Bearer de l'API d'arrêt d'urgence
    ```
+4. **Le hub qui la vend avec Pay-on-Verified** achemine la capacité vers le vérificateur de cette
+   GAIA, pour que l'argent soit décidé par une vérification exacte et non par un jury de LLM :
+   ```
+   # GAIA : en production, /v1/verify refuse tout appelant tant que ceci n'est pas défini
+   GAIA_VERIFY_TOKEN=…                # un secret aléatoire, depuis un fichier 0600
+   # fichier d'environnement du hub (une ligne, sans guillemets : --env-file prend les valeurs telles quelles)
+   AIMARKET_VERIFY_ROUTES={"gaia.actuate@v1": {"url": "https://<gaia>", "verifier_id": "gaia.verify@v1", "key_env": "AIMARKET_VERIFY_GAIA_TOKEN"}}
+   AIMARKET_VERIFY_GAIA_TOKEN=…       # la même valeur que GAIA_VERIFY_TOKEN
+   ```
+   Sans le jeton côté hub, le hub refuse le bloc `verify` avant toute commutation ; avec un jeton
+   erroné, GAIA répond 401 et l'acheteur est remboursé. Voir
+   [les routes de vérificateur du hub](https://github.com/alexar76/aimarket-hub/blob/main/docs/pay-on-verified.md#verifier-routes).
 
 L'allumage est envoyé sous la forme `Backlog PulseTime1 <durée>; Power1 ON`, donc **la prise
 s'éteint d'elle-même** au bout de la durée payée, même si GAIA, le broker ou le réseau
@@ -199,6 +299,11 @@ le répertoire de données.
   l'affirmation reste étroite.
 - L'effet prouve que de la puissance a traversé la prise, pas ce que l'appareil en a fait.
 - La prise de la démonstration publique est simulée (`SIM`) : son radiateur n'existe qu'en logiciel, et chaque réponse le dit (`"simulated": true`).
+- Avec la route, GAIA est à la fois vendeur et juge de `gaia.actuate@v1`. Ce n'est acceptable que
+  parce que le verdict est une vérification déterministe de preuves signées que chacun peut rejouer
+  (`POST /v1/verify`, ou `gaia.verify@v1` avec le lot), et parce qu'un acheteur peut faire appel d'un
+  succès devant la cour d'appel du hub — un autre vérificateur — quand le hub en a une. Aucun
+  vérificateur, ni GAIA ni un LLM, ne détecte des preuves forgées par qui détient la clé de la prise.
 
 W3C WoT : la Thing Description de chaque prise (`GET /wot/<id>`) porte les **actions**
 `switchOn` / `switchOff`, dont les formulaires sont des invocations payantes de `gaia.actuate@v1`.
