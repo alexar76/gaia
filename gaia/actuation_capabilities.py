@@ -230,7 +230,13 @@ def consumption_read_handler(controller: "ActuationController", store: "Consumpt
         if to_ts <= from_ts:
             raise ValueError(f"{aid}: no finished {resolution} in that window (a sold series holds "
                              f"whole UTC {resolution}s only); nothing charged")
-        return _series(controller, store, spec, from_ts, to_ts, resolution)
+        series = _series(controller, store, spec, from_ts, to_ts, resolution)
+        if not series["buckets"]:
+            # An empty series is not something to sell: the plug was not recorded in that window
+            # (new, offline, GAIA down). The owner's own read still answers it, for free.
+            raise ValueError(f"{aid}: no recorded consumption between {series['from']} and "
+                             f"{series['to']}; nothing charged")
+        return series
     return handler
 
 

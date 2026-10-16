@@ -483,7 +483,7 @@ flowchart TD
     A -- oui --> B{"résolution plus fine que ce que vend le propriétaire ?"}
     B -- oui --> X2["ok:false — totaux journaliers seulement, rien n'est débité"]
     B -- non --> C["from arrondi vers le haut, to vers le bas, en tranches UTC complètes ;<br/>la tranche en cours est exclue"]
-    C --> D{"from dans history_days,<br/>au moins une tranche terminée ?"}
+    C --> D{"from dans history_days,<br/>des tranches terminées avec des données ?"}
     D -- non --> X3["ok:false — dit pourquoi, rien n'est débité"]
     D -- oui --> E["tranches + totaux,<br/>signés par la clé de l'appareil — facturable"]
 ```
@@ -491,6 +491,8 @@ flowchart TD
 Une série vendue ne contient **que des tranches complètes et terminées**. Sans cette règle, un
 « jour » sur une fenêtre d'une heure serait une lecture horaire, et relire sans cesse l'heure en cours
 donnerait une lecture minute par minute — plus fine que ce que le propriétaire a choisi de vendre.
+Une fenêtre où rien n'a été enregistré (une prise neuve, une coupure) est refusée aussi : on ne vend
+pas du vide.
 
 Chaque tranche indique `start`, `end`, `energy_wh`, `mean_w`, `peak_w`, `on_minutes` et `samples` ;
 `totals` les additionne. `attestation` est une signature Ed25519 par la clé de l'appareil — celle que

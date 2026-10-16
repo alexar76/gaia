@@ -478,14 +478,15 @@ flowchart TD
     A -- sí --> B{"¿resolución más fina que la que vende el propietario?"}
     B -- sí --> X2["ok:false: solo totales diarios, no se cobra nada"]
     B -- no --> C["from se redondea hacia arriba y to hacia abajo a intervalos UTC completos;<br/>el intervalo en curso queda fuera"]
-    C --> D{"¿from dentro de history_days,<br/>al menos un intervalo terminado?"}
+    C --> D{"¿from dentro de history_days,<br/>hay intervalos terminados con datos?"}
     D -- no --> X3["ok:false: dice por qué, no se cobra nada"]
     D -- sí --> E["intervalos + totales,<br/>firmados con la clave del dispositivo: facturable"]
 ```
 
 Una serie vendida contiene **solo intervalos completos y terminados**. Sin esa regla, un «día»
 sobre una ventana de una hora sería una lectura horaria, y leer una y otra vez la hora en curso
-daría una lectura minuto a minuto: más detalle del que el propietario decidió vender.
+daría una lectura minuto a minuto: más detalle del que el propietario decidió vender. Una ventana
+sin nada registrado (un enchufe nuevo, una interrupción) también se rechaza: no se vende nada por nada.
 
 Cada intervalo indica `start`, `end`, `energy_wh`, `mean_w`, `peak_w`, `on_minutes` y `samples`;
 `totals` los suma. `attestation` es una firma Ed25519 con la clave del dispositivo —la que llevan

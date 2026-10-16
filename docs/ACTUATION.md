@@ -464,14 +464,15 @@ flowchart TD
     A -- yes --> B{"resolution finer than the owner sells?"}
     B -- yes --> X2["ok:false — only daily totals, nothing charged"]
     B -- no --> C["round from up, to down to whole UTC buckets;<br/>the bucket still filling is left out"]
-    C --> D{"from within history_days,<br/>at least one finished bucket?"}
+    C --> D{"from within history_days,<br/>finished buckets with recorded data?"}
     D -- no --> X3["ok:false — says why, nothing charged"]
     D -- yes --> E["buckets + totals,<br/>signed by the plug's device key — billable"]
 ```
 
 A sold series holds **whole, finished buckets only**. Without that rule a "day" over a one-hour
 window would be an hourly reading, and reading the current hour again and again would be a
-minute-by-minute one — finer than the owner chose to sell.
+minute-by-minute one — finer than the owner chose to sell. A window with nothing recorded (a new
+plug, an outage) is refused as well: nothing is sold for nothing.
 
 Each bucket says `start`, `end`, `energy_wh`, `mean_w`, `peak_w`, `on_minutes` and `samples`;
 `totals` sums them. `attestation` is an Ed25519 signature by the plug's device key — the key its

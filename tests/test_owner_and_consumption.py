@@ -202,6 +202,13 @@ def test_a_sold_series_never_holds_finer_data_than_the_owner_sells(app):
     assert out["to"] <= this_hour
 
 
+def test_an_empty_window_is_never_sold(app):
+    _, client = app
+    body = _invoke(client, "gaia.consumption.read@v1", {"actuator_id": "plug-sim-01"}).json()
+    assert body["ok"] is False and "no recorded consumption" in body["error"]
+    assert "nothing charged" in body["error"]
+
+
 def test_a_sold_series_is_signed_by_the_plugs_device_key(app):
     runtime, client = app
     _fill(runtime, "plug-sim-01")
