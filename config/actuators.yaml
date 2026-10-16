@@ -1,0 +1,18 @@
+# GAIA actuators — read only when GAIA_ACTUATION_ENABLED=1 (default off).
+#
+# Each entry is a metering smart plug: the relay GAIA switches and the meter that proves
+# it switched. A caller can only name an id listed here, never a topic or a broker.
+# Operators with real hardware copy actuators.example.yaml and point GAIA_ACTUATORS_FILE
+# at their own file.
+actuators:
+  - id: plug-sim-01
+    kind: sim-plug
+    label: "Demo heater behind a metering plug (simulated)"
+    load_w: 1500          # what the simulated appliance draws when the relay is closed
+    expect_on_w: 1000     # metered power that proves "on"
+    off_max_w: 10         # metered power that proves "off"
+    min_on_s: 10
+    max_on_s: 900         # nothing stays on longer than 15 minutes per command
+    cooldown_s: 30
+    effect_timeout_s: 20
+    site: demo-site-1

@@ -143,6 +143,11 @@ ALLOWED_HOSTS = frozenset({
     "opendata.chmi.cz",
     "apis.data.go.kr",
     "api.gfm.eodc.eu",
+    # Day-ahead electricity prices (SMARD / Bundesnetzagentur, CC BY 4.0)
+    "www.smard.de",
+    # Sentinel-2 L2A (Copernicus, free/full/open): Earth Search STAC + AWS Open Data COGs
+    "earth-search.aws.element84.com",
+    "sentinel-cogs.s3.us-west-2.amazonaws.com",
 })
 
 # Backward-compatible private alias used throughout live.py / tests.

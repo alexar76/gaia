@@ -193,6 +193,15 @@ Densify (те же SKU, больше пинов): EA 7→20, PEGELONLINE 10→22
 
 Реестры RadNet и DART обновляются одной командой `python3 scripts/update_p4_networks.py`; она одновременно пишет deploy-safe копии GAIA и ATLAS.
 
+## P13 — цены на электроэнергию на сутки вперёд и снимки Sentinel-2
+
+| device_id | SKU | Источник | Лицензия / охват |
+|-----------|-----|----------|------------------|
+| `smard-price-<зона>` (15 зон: `de-lu`, `at`, `be`, `no2`, `dk1`, `dk2`, `fr`, `it-north`, `nl`, `pl`, `se4`, `ch`, `si`, `cz`, `hu`) | `gaia.power.price.read@v1`, `gaia.power.window@v1` | Ряды SMARD.de (Bundesnetzagentur) на сутки вперёд, недельные блоки по 15 минут | **CC BY 4.0** — указывать Bundesnetzagentur / SMARD.de. Оптовая биржевая цена, не тариф. Ряды сопоставлены с зонами по значениям. `GAIA_SMARD_ZONES` ограничивает зоны, `GAIA_SMARD_ENABLED=0` выключает. [Руководство](POWER-PRICES.ru.md) |
+| `s2-l2a-01` (запрос по точке) | `gaia.imagery.read@v1` | STAC Element84 Earth Search + AWS Open Data `sentinel-cogs` | **Данные Copernicus Sentinel** — свободные, полные, открытые, включая коммерческое использование; атрибуция «Contains modified Copernicus Sentinel data <год>». Один пиксель последнего чистого снимка. `GAIA_S2_ENABLED=0` выключает. [Руководство](IMAGERY.ru.md) |
+
+Не ретрансляторы, но вышли в той же волне: бесплатная `gaia.place.resolve@v1` ([справочник GeoNames](PLACES.ru.md)) и управление устройствами с оплатой по факту `gaia.actuate@v1` ([руководство](ACTUATION.ru.md)).
+
 ## Не включаем как платные Hub SKU
 
 | Источник | Почему |

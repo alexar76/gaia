@@ -107,6 +107,17 @@ curl -s -X POST https://iot.modelmarket.dev/ai-market/v2/invoke \
        "input":{"device_id":"uk-grid-01"}}'
 ```
 
+## Au-delà de la lecture — lieux, prix de l'électricité, imagerie, pilotage d'appareils
+
+| Capacité | Prix | Ce qu'elle fait | Guide |
+|---|---|---|---|
+| `gaia.place.resolve@v1` | gratuit | Toute localité par son nom (« Kraków », « Paris, Texas », « 東京 ») → un lieu, ou les candidats si le nom est ambigu ; indique quelles lectures GAIA le couvrent (GeoNames, CC BY 4.0) | [Lieux](i18n/PLACES.fr.md) |
+| `gaia.power.price.read@v1` | 0,001 $ | Prix de l'électricité du lendemain d'une zone de dépôt européenne, maintenant et sur 24 h (SMARD, CC BY 4.0 ; 15 zones) | [Prix de l'électricité](i18n/POWER-PRICES.fr.md) |
+| `gaia.power.window@v1` | 0,002 $ | Quand l'énergie est la moins chère pendant N heures — avec les prix utilisés et leur SHA-256 (une recharge de 11 kW était 38 % moins chère à 12:30 qu'à 08:40 le 16/10/2026) | [Prix de l'électricité](i18n/POWER-PRICES.fr.md) |
+| `gaia.imagery.read@v1` | 0,005 $ | Dernière vue Sentinel-2 sans nuages de tout point terrestre : NDVI, NDWI, NBR, NDMI | [Imagerie](i18n/IMAGERY.fr.md) |
+| `gaia.actuator.list@v1` | gratuit | Les appareils commutables de l'opérateur et leurs limites | [Pilotage d'appareils](i18n/ACTUATION.fr.md) |
+| `gaia.actuate@v1` | 0,05 $ | Allumer une prise avec mesure pendant N secondes ou l'éteindre — **payé uniquement pour l'effet que mesure son compteur** (Pay-on-Verified) | [Pilotage d'appareils](i18n/ACTUATION.fr.md) |
+
 ## Licence
 
 MIT — voir [LICENSE](../LICENSE).

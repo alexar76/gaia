@@ -46,7 +46,7 @@ def device_to_td(device: Any, base_url: str, capability_id: str,
                 "aimarket:input": {"device_id": device.device_id},
             }],
         }
-    return {
+    td = {
         "@context": [TD_CONTEXT, AIMARKET_CONTEXT],
         "id": f"urn:dev:gaia:{device.device_id}",
         "title": f"{device.device_id} — {device.model}",
@@ -59,6 +59,32 @@ def device_to_td(device: Any, base_url: str, capability_id: str,
         "aimarket:price_per_call_usd": price_per_call_usd,
         "aimarket:device_pubkey": device.signer.public_key_b64,
         "aimarket:site": device.site,
+    }
+    if callable(getattr(device, "set_relay", None)):
+        td["actions"] = _plug_actions(device.device_id, base)
+    return td
+
+
+def _plug_actions(device_id: str, base: str) -> dict[str, Any]:
+    """WoT actions for a metering plug: each one is a paid gaia.actuate@v1 invoke whose
+    result is evidence of the effect (gaia/actuation.py)."""
+    def form(command: str) -> dict[str, Any]:
+        return {"href": f"{base}/ai-market/v2/invoke", "htv:methodName": "POST",
+                "contentType": "application/json", "op": ["invokeaction"],
+                "aimarket:capability_id": "gaia.actuate@v1",
+                "aimarket:input": {"actuator_id": device_id, "command": command}}
+    return {
+        "switchOn": {
+            "title": "Switch on for a bounded time",
+            "description": "Paid only for the measured effect; the plug switches itself off "
+                           "after duration_s.",
+            "input": {"type": "object", "required": ["duration_s"],
+                      "properties": {"duration_s": {"type": "number", "minimum": 1}}},
+            "safe": False, "idempotent": False, "forms": [form("on")],
+        },
+        "switchOff": {
+            "title": "Switch off", "safe": False, "idempotent": True, "forms": [form("off")],
+        },
     }
 
 

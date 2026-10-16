@@ -106,6 +106,17 @@ curl -s -X POST https://iot.modelmarket.dev/ai-market/v2/invoke \
        "input":{"device_id":"uk-grid-01"}}'
 ```
 
+## Más allá de leer — lugares, precios eléctricos, imágenes, control de dispositivos
+
+| Capacidad | Precio | Qué hace | Guía |
+|---|---|---|---|
+| `gaia.place.resolve@v1` | gratis | Cualquier localidad por su nombre («Kraków», «Paris, Texas», «東京») → un lugar, o los candidatos si el nombre es ambiguo; indica qué lecturas de GAIA lo cubren (GeoNames, CC BY 4.0) | [Lugares](i18n/PLACES.es.md) |
+| `gaia.power.price.read@v1` | $0.001 | Precio eléctrico del día siguiente de una zona de oferta europea, ahora y en las próximas 24 h (SMARD, CC BY 4.0; 15 zonas) | [Precios eléctricos](i18n/POWER-PRICES.es.md) |
+| `gaia.power.window@v1` | $0.002 | Cuándo es más barata la energía durante N horas — con los precios usados y su SHA-256 (una carga de coche eléctrico de 11 kW fue un 38 % más barata a las 12:30 que a las 08:40 el 16-10-2026) | [Precios eléctricos](i18n/POWER-PRICES.es.md) |
+| `gaia.imagery.read@v1` | $0.005 | Última vista Sentinel-2 sin nubes de cualquier punto en tierra: NDVI, NDWI, NBR, NDMI | [Imágenes](i18n/IMAGERY.es.md) |
+| `gaia.actuator.list@v1` | gratis | Los dispositivos conmutables del operador y sus límites | [Control de dispositivos](i18n/ACTUATION.es.md) |
+| `gaia.actuate@v1` | $0.05 | Encender un enchufe con medición durante N segundos o apagarlo — **se paga solo el efecto que mide su medidor** (Pay-on-Verified) | [Control de dispositivos](i18n/ACTUATION.es.md) |
+
 ## Licencia
 
 MIT — ver [LICENSE](../LICENSE).

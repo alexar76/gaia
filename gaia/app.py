@@ -155,6 +155,11 @@ _READ_CAP_BY_TYPE = {
     "ChmuWeather": "gaia.weather.read@v1",
     "KmaAsosWeather": "gaia.weather.read@v1",
     "GfmFlood": "gaia.flood.read@v1",
+    "SmardDayAheadPrice": "gaia.power.price.read@v1",
+    "Sentinel2Point": "gaia.imagery.read@v1",
+    # A plug's meter reads like any energy meter; switching it is gaia.actuate@v1 (WoT actions).
+    "SmartPlugSim": "gaia.energy.read@v1",
+    "TasmotaPlug": "gaia.energy.read@v1",
 }
 
 
@@ -313,6 +318,53 @@ def build_app(runtime: GatewayRuntime | None = None,
                 raise HTTPException(status_code=404, detail="Unknown device") from None
             cap = _read_cap_for(device)
             return device_to_td(device, spec.public_url, cap, 0.001)
+
+        # ── Actuation: public status + evidence, operator kill switch ───────
+
+        def _controller():
+            controller = getattr(runtime, "actuation", None)
+            if controller is None:
+                raise HTTPException(status_code=404,
+                                    detail="actuation is not enabled on this GAIA")
+            return controller
+
+        def _operator(authorization: str | None) -> None:
+            token = os.environ.get("GAIA_ACTUATION_TOKEN", "").strip()
+            if not token:
+                raise HTTPException(status_code=503,
+                                    detail="the kill switch API requires GAIA_ACTUATION_TOKEN")
+            if not (authorization and hmac.compare_digest(authorization, f"Bearer {token}")):
+                raise HTTPException(status_code=401, detail="invalid or missing Authorization")
+
+        @app.get("/actuation/v1/status")
+        async def actuation_status(request: Request) -> dict[str, Any]:
+            _limit(aux_limiter, request)
+            return _controller().status()
+
+        @app.get("/actuation/v1/evidence/{command_id}")
+        async def actuation_evidence(command_id: str, request: Request) -> dict[str, Any]:
+            _limit(aux_limiter, request)
+            found = _controller().evidence(command_id)
+            if found is None:
+                raise HTTPException(status_code=404,
+                                    detail="no recent evidence under that command id")
+            return found
+
+        @app.post("/actuation/v1/kill")
+        async def actuation_kill(request: Request,
+                                 authorization: str | None = Header(default=None)) -> dict[str, Any]:
+            _limit(sim_limiter, request)
+            _operator(authorization)
+            import asyncio
+
+            return await asyncio.to_thread(_controller().kill, "operator API")
+
+        @app.post("/actuation/v1/resume")
+        async def actuation_resume(request: Request,
+                                   authorization: str | None = Header(default=None)) -> dict[str, Any]:
+            _limit(sim_limiter, request)
+            _operator(authorization)
+            return _controller().resume()
 
         # ── Edge feeder ingest (own dump1090 / AIS) ─────────────────────────
 

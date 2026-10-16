@@ -369,7 +369,17 @@ Key-gated pins (KMA / GFM) are in the ATLAS catalog as `kind: point` / event but
 
 ### Hold — ENTSO-E Transparency Platform
 
-**Not shipped as a paid Hub SKU.** EU Reg. 543/2013 makes the data free to *view*, but ENTSO-E Terms of Use do not grant a clear commercial redistributability right for reselling readings (Neon/Jaeger open-data review). Revisit if ENTSO-E publishes CC BY / OGL-equivalent terms.
+**Not shipped as a paid Hub SKU.** EU Reg. 543/2013 makes the data free to *view*, but ENTSO-E Terms of Use do not grant a clear commercial redistributability right for reselling readings (Neon/Jaeger open-data review). Revisit if ENTSO-E publishes CC BY / OGL-equivalent terms. Day-ahead prices for DE-LU and its
+coupled neighbours are shipped instead from SMARD, which licenses them CC BY 4.0 (P13 below).
+
+## P13 — day-ahead power prices and Sentinel-2 imagery
+
+| device_id | SKU | Upstream | License / scope |
+|-----------|-----|----------|-----------------|
+| `smard-price-<zone>` (15 zones: `de-lu`, `at`, `be`, `no2`, `dk1`, `dk2`, `fr`, `it-north`, `nl`, `pl`, `se4`, `ch`, `si`, `cz`, `hu`) | `gaia.power.price.read@v1`, `gaia.power.window@v1` | SMARD.de (Bundesnetzagentur) day-ahead series, weekly quarter-hour chunks | **CC BY 4.0** — cite Bundesnetzagentur / SMARD.de. Wholesale exchange price, not a tariff. Series matched to zones by value. `GAIA_SMARD_ZONES` limits the zones, `GAIA_SMARD_ENABLED=0` turns them off. [Guide](POWER-PRICES.md) |
+| `s2-l2a-01` (point-queried) | `gaia.imagery.read@v1` | Element84 Earth Search STAC + AWS Open Data `sentinel-cogs` | **Copernicus Sentinel data** — free, full, open incl. commercial; credit "Contains modified Copernicus Sentinel data <year>". One pixel of the newest clear scene. `GAIA_S2_ENABLED=0` turns it off. [Guide](IMAGERY.md) |
+
+Not relays, but shipped in the same wave: the free `gaia.place.resolve@v1` ([GeoNames gazetteer](PLACES.md)) and pay-on-verified device control `gaia.actuate@v1` ([guide](ACTUATION.md)).
 
 ## License / commercialize (what is intentionally NOT included)
 

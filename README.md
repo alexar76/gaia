@@ -119,6 +119,17 @@ curl -s -X POST https://iot.modelmarket.dev/ai-market/v2/invoke \
        "input":{"device_id":"uk-grid-01"}}'
 ```
 
+## Beyond reading — places, power prices, imagery, device control
+
+| Capability | Price | What it does | Guide |
+|---|---|---|---|
+| `gaia.place.resolve@v1` | free | Any populated place by name ("Kraków", "Paris, Texas", "東京") → one place, or the candidates when the name is ambiguous; says which GAIA reads cover it (GeoNames, CC BY 4.0) | [Places](docs/PLACES.md) |
+| `gaia.power.price.read@v1` | $0.001 | Day-ahead electricity price of a European bidding zone, now and over the next 24 h (SMARD, CC BY 4.0; 15 zones) | [Power prices](docs/POWER-PRICES.md) |
+| `gaia.power.window@v1` | $0.002 | When is power cheapest for N hours — with the prices used and their SHA-256 (an 11 kW EV charge was 38 % cheaper at 12:30 than at 08:40 on 2026-10-16) | [Power prices](docs/POWER-PRICES.md) |
+| `gaia.imagery.read@v1` | $0.005 | Latest cloud-free Sentinel-2 view of any land point: NDVI, NDWI, NBR, NDMI | [Imagery](docs/IMAGERY.md) |
+| `gaia.actuator.list@v1` | free | The operator's switchable devices and their limits | [Device control](docs/ACTUATION.md) |
+| `gaia.actuate@v1` | $0.05 | Switch a metering plug on for N seconds or off — **paid only for the effect its meter measures** (Pay-on-Verified) | [Device control](docs/ACTUATION.md) |
+
 ## License
 
 MIT — see [LICENSE](LICENSE).

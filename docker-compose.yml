@@ -119,6 +119,21 @@ services:
       ORACLE_PQC: ${ORACLE_PQC:-1}
       GAIA_KEY_DIR: /data/devices
       GAIA_SIGNING_KEY_PATH: /data/gaia_signing_key
+      # Day-ahead power prices (SMARD, CC BY 4.0) and Sentinel-2 imagery — on by default;
+      # GAIA_SMARD_ZONES narrows the zones (comma list, e.g. "DE-LU,FR").
+      GAIA_SMARD_ENABLED: ${GAIA_SMARD_ENABLED:-1}
+      GAIA_SMARD_ZONES: ${GAIA_SMARD_ZONES:-}
+      GAIA_S2_ENABLED: ${GAIA_S2_ENABLED:-1}
+      # Pay-on-verified device control (docs/ACTUATION.md). Off unless enabled; the
+      # actuators are the operator's YAML (default config/actuators.yaml: one SIM plug).
+      # The kill switch API needs GAIA_ACTUATION_TOKEN and fails closed without it.
+      GAIA_ACTUATION_ENABLED: ${GAIA_ACTUATION_ENABLED:-0}
+      GAIA_ACTUATORS_FILE: ${GAIA_ACTUATORS_FILE:-}
+      GAIA_ACTUATION_TOKEN: ${GAIA_ACTUATION_TOKEN:-}
+      GAIA_ACTUATION_KILL: ${GAIA_ACTUATION_KILL:-}
+      GAIA_MQTT_BROKER: ${GAIA_MQTT_BROKER:-}
+      GAIA_MQTT_USERNAME: ${GAIA_MQTT_USERNAME:-}
+      GAIA_MQTT_PASSWORD: ${GAIA_MQTT_PASSWORD:-}
     volumes:
       - gaia-keys:/data
     ports:

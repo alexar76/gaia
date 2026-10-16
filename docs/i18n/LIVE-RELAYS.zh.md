@@ -191,6 +191,15 @@ Kystverket AIS、EMSC、NHC 气旋、EA 英格兰洪水、PTWC Atom、ADSB.lol �
 
 用 `python3 scripts/update_p4_networks.py` 同时刷新 RadNet 与 DART 注册表，并写入 GAIA/ATLAS 两份可部署副本。
 
+## P13 — 日前电价与 Sentinel-2 影像
+
+| device_id | SKU | 数据源 | 许可 / 范围 |
+|-----------|-----|--------|-------------|
+| `smard-price-<竞价区>`（15 个区：`de-lu`、`at`、`be`、`no2`、`dk1`、`dk2`、`fr`、`it-north`、`nl`、`pl`、`se4`、`ch`、`si`、`cz`、`hu`） | `gaia.power.price.read@v1`、`gaia.power.window@v1` | SMARD.de（德国联邦网络局）日前序列，按周的刻钟数据块 | **CC BY 4.0**——注明 Bundesnetzagentur / SMARD.de。交易所批发价，不是零售电价。序列按数值对应到竞价区。`GAIA_SMARD_ZONES` 限定竞价区，`GAIA_SMARD_ENABLED=0` 关闭。[指南](POWER-PRICES.zh.md) |
+| `s2-l2a-01`（按点查询） | `gaia.imagery.read@v1` | Element84 Earth Search STAC + AWS Open Data `sentinel-cogs` | **Copernicus Sentinel 数据**——免费、完整、开放，含商业用途；署名「Contains modified Copernicus Sentinel data <年份>」。最新无云影像的一个像元。`GAIA_S2_ENABLED=0` 关闭。[指南](IMAGERY.zh.md) |
+
+不是中继，但在同一批发布：免费的 `gaia.place.resolve@v1`（[GeoNames 地名库](PLACES.zh.md)）以及按验证付费的设备控制 `gaia.actuate@v1`（[指南](ACTUATION.zh.md)）。
+
 ## 不作为付费 Hub SKU
 
 | 来源 | 原因 |

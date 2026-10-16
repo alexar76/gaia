@@ -15,6 +15,13 @@ priced capabilities plus a free fleet status:
     gaia.verify@v1        $0.002   plausibility verdict as a sellable good
                                    (same math the /v1/verify endpoint serves)
     gaia.fleet.status@v1  free     device registry incl. pinned device pubkeys
+    gaia.place.resolve@v1 free     place name or coordinate → one place (GeoNames), and
+                                   the reads that cover it; only with a gazetteer
+    gaia.power.price.read@v1 $0.001  day-ahead electricity price of a bidding zone (SMARD)
+    gaia.power.window@v1  $0.002   cheapest window of N hours in the published horizon
+    gaia.imagery.read@v1  $0.005   latest cloud-free Sentinel-2 indices at a point
+    gaia.actuator.list@v1 free     the operator's actuators (GAIA_ACTUATION_ENABLED=1)
+    gaia.actuate@v1       $0.05    switch one; paid only for the measured effect
 """
 
 from __future__ import annotations
@@ -78,8 +85,22 @@ class GatewayRuntime:
             for _dev in build_live_fleet(self.clock, key_dir=key_dir).devices():
                 self.fleet.add(_dev)
 
+        # Pay-on-verified actuation over the operator's own plugs (GAIA_ACTUATION_ENABLED);
+        # None when off, and then no actuation capability is advertised.
+        from gaia.actuation import build_controller
+
+        self.actuation = build_controller(self.fleet, self.clock, key_dir=key_dir)
+
         self.verifier = PlausibilityVerifier(self.fleet)
         self.service = VerifierService(self.verifier)
+        if self.actuation is not None:
+            self.actuation.plausibility = self.verifier
+
+        # Any populated place by name (GeoNames), when GAIA_GAZETTEER_PATH names a built
+        # gazetteer; None keeps place matching to the cities GAIA relays.
+        from gaia.gazetteer import load_default
+
+        self.gazetteer = load_default()
 
     def read(self, device_id: str) -> dict[str, Any]:
         """One reading; in autotick mode simulated time advances per read so
@@ -229,11 +250,16 @@ def _known_places(limit: int = 12) -> str:
     return ", ".join(places[:limit]) + more
 
 
-def _requested_location(raw: dict[str, Any]) -> dict[str, Any] | None:
+def _requested_location(raw: dict[str, Any], gazetteer: Any = None) -> dict[str, Any] | None:
     """latitude+longitude (lat/lon/lng accepted) or city/place/location, else None.
 
     Returns {lat, lon, requested, place, slug}: `requested` is what the caller sent,
     verbatim, so the answer can show it next to what it was matched to.
+
+    A name is matched against the cities GAIA relays first (their own relays, their own
+    history). Anything else — "Kraków", "Paris, Texas" — goes to the GeoNames gazetteer
+    when one is loaded, which also refuses an ambiguous name with the candidates rather
+    than guessing; then `place_source` is "geonames" and `geonameid` names the match.
     """
     lat = raw.get("latitude", raw.get("lat"))
     lon = raw.get("longitude", raw.get("lon", raw.get("lng")))
@@ -252,7 +278,18 @@ def _requested_location(raw: dict[str, Any]) -> dict[str, Any] | None:
     for key in ("city", "place", "location"):
         value = raw.get(key)
         if isinstance(value, str) and value.strip():
-            found = _place_coordinate(value)
+            try:
+                found = _place_coordinate(value)
+            except ValueError:
+                if gazetteer is None:
+                    raise
+                found = None  # "Paris, Texas": not ours, but a real place
+            if found is None and gazetteer is not None:
+                place = gazetteer.require(value)  # GazetteerError is a ValueError
+                return {"lat": place.latitude, "lon": place.longitude,
+                        "requested": value.strip()[:120], "place": place.label,
+                        "slug": None, "place_source": "geonames",
+                        "geonameid": place.geonameid}
             if found is None:
                 raise ValueError(
                     f"unknown {key} {value.strip()[:60]!r}: pass latitude and longitude, "
@@ -260,8 +297,20 @@ def _requested_location(raw: dict[str, Any]) -> dict[str, Any] | None:
                 )
             lat_f, lon_f, place, slug = found
             return {"lat": lat_f, "lon": lon_f, "requested": value.strip()[:120],
-                    "place": place, "slug": slug}
+                    "place": place, "slug": slug, "place_source": "gaia-relay-list"}
     return None
+
+
+def _place_source(where: dict[str, Any]) -> dict[str, Any]:
+    """Where a named place came from, for the answer's `resolved` block (and GeoNames'
+    CC BY attribution when it came from there). Coordinates carry nothing."""
+    source = where.get("place_source")
+    if source == "geonames":
+        from gaia.gazetteer import ATTRIBUTION
+
+        return {"place_source": source, "geonameid": where.get("geonameid"),
+                "place_attribution": ATTRIBUTION}
+    return {"place_source": source} if source else {}
 
 
 def _km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -287,7 +336,7 @@ def _weather_read_handler(runtime: GatewayRuntime, sim_default: str = "ws-01"):
         device_id = str(raw.get("device_id") or "").strip()
         if device_id:
             return runtime.read(device_id)
-        where = _requested_location(raw)
+        where = _requested_location(raw, getattr(runtime, "gazetteer", None))
         if not _runs_live(runtime):
             if where is not None:
                 raise ValueError(
@@ -320,6 +369,7 @@ def _weather_read_handler(runtime: GatewayRuntime, sim_default: str = "ws-01"):
         out = runtime.read(device.device_id)
         return {**out, "resolved": {
             "requested": where["requested"], "matched_place": where["place"],
+            **_place_source(where),
             "device_id": device.device_id,
             "relay_latitude": device.latitude, "relay_longitude": device.longitude,
             "distance_km": round(km, 1),
@@ -356,7 +406,7 @@ def _air_read_handler(runtime: GatewayRuntime, sim_default: str = "aq-01",
         raw = data if isinstance(data, dict) else {}
         if str(raw.get("device_id") or "").strip():
             return geo(raw)
-        where = _requested_location(raw)
+        where = _requested_location(raw, getattr(runtime, "gazetteer", None))
         try:
             runtime.fleet.get(point_relay)
         except ValueError:
@@ -384,6 +434,7 @@ def _air_read_handler(runtime: GatewayRuntime, sim_default: str = "aq-01",
             resolved = {"device_id": point_relay}
         return {**out, "resolved": {
             "requested": where["requested"], "matched_place": where["place"], **resolved,
+            **_place_source(where),
             "latitude": where["lat"], "longitude": where["lon"],
         }}
 
@@ -599,6 +650,17 @@ def _window_handler(runtime: GatewayRuntime):
 
 def _verify_handler(runtime: GatewayRuntime):
     def handler(data: dict[str, Any]) -> dict[str, Any]:
+        if isinstance(data.get("actuation"), dict):
+            # An actuation bundle: the same evaluate() the escrow slot runs, by the plug's
+            # pinned key. Stateless — this diagnostic never advances the settlement mark.
+            from gaia.actuation import evaluate
+
+            actuator = str((data["actuation"].get("record") or {}).get("actuator_id", ""))
+            try:
+                pubkey = runtime.fleet.get(actuator).signer.public_key_b64
+            except ValueError:
+                raise ValueError(f"{actuator!r} is not an actuator of this GAIA") from None
+            return evaluate(data, pubkey=pubkey, plausibility=runtime.verifier).to_dict()
         reading = data.get("reading")
         if not isinstance(reading, dict):
             raise ValueError("input must carry a 'reading' object")
@@ -698,7 +760,9 @@ _PLACE_PROPS = {
     "longitude": {"type": "number", "minimum": -180, "maximum": 180},
     "city": {
         "type": "string",
-        "description": "city name in any listed spelling, e.g. Tokyo / Токио / 東京",
+        "description": "city name, e.g. Tokyo / Токио / 東京; add the state or country "
+                       "after a comma when the name is shared (\"Paris, Texas\"). GAIAs with "
+                       "a gazetteer take any populated place (see gaia.place.resolve@v1)",
         # A default so tools that build example calls from defaults (Hephaestus Studio's
         # example chain) send a place: an empty call is refused on a live GAIA.
         "default": "Berlin",
@@ -1560,6 +1624,101 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             price_per_call_usd=0.0, p50_latency_ms=5,
         ),
     ])
+    controller = getattr(runtime, "actuation", None)
+    if controller is not None and controller.specs:
+        from gaia.actuation_capabilities import (
+            ACTUATE_IN, ACTUATE_OUT, ACTUATE_PRICE_USD, LIST_OUT, actuate_handler, list_handler,
+        )
+
+        caps.append(Capability(
+            capability_id="gaia.actuator.list@v1",
+            description="Free. The operator's actuators (metering smart plugs): commands, "
+                        "duration limits, cooldown, current relay state, pinned device keys, "
+                        "and whether the operator's kill switch is engaged.",
+            handler=list_handler(controller),
+            product_id=product, output_schema=LIST_OUT,
+            price_per_call_usd=0.0, p50_latency_ms=5,
+        ))
+        caps.append(Capability(
+            capability_id="gaia.actuate@v1",
+            description="Switch a device and pay only for the measured effect: 'on' for "
+                        "duration_s (the plug turns itself off after it) or 'off'. Returns the "
+                        "evidence — signed command, attested meter reading before and after, "
+                        "effect expected vs observed. No effect: ok:false, nothing charged. "
+                        "Invoke with a verify block to hold payment in escrow until GAIA's "
+                        "/v1/verify confirms it.",
+            handler=actuate_handler(controller),
+            product_id=product, input_schema=ACTUATE_IN, output_schema=ACTUATE_OUT,
+            price_per_call_usd=ACTUATE_PRICE_USD, p50_latency_ms=1500,
+        ))
+
+    from gaia.devices.live_imagery import Sentinel2Point
+
+    if any(isinstance(d, Sentinel2Point) for d in runtime.fleet.devices()):
+        from gaia.imagery_capabilities import IMAGERY_IN, IMAGERY_OUT, PRICE_USD, imagery_read_handler
+
+        caps.append(Capability(
+            capability_id="gaia.imagery.read@v1",
+            description="Latest cloud-free Sentinel-2 view of a point on land, Ed25519-"
+                        "attested: NDVI (vegetation), NDWI (water), NBR (burn), NDMI "
+                        "(moisture) and five surface reflectances, from the newest scene "
+                        "whose pixel there is clear (scene classification). Pass latitude+"
+                        "longitude or a city; max_age_days 1-120. Contains modified "
+                        "Copernicus Sentinel data.",
+            handler=imagery_read_handler(runtime),
+            product_id=product, input_schema=IMAGERY_IN, output_schema=IMAGERY_OUT,
+            price_per_call_usd=PRICE_USD, p50_latency_ms=5000,
+        ))
+
+    from gaia.devices.live_power import SmardDayAheadPrice
+
+    power_zones = [d.zone for d in runtime.fleet.devices() if isinstance(d, SmardDayAheadPrice)]
+    if power_zones:
+        from gaia.power_capabilities import (
+            PRICE_READ_IN, PRICE_READ_OUT, WINDOW_IN, WINDOW_OUT,
+            price_read_handler, window_handler,
+        )
+
+        zones = ", ".join(power_zones)
+        caps.append(Capability(
+            capability_id="gaia.power.price.read@v1",
+            description="Day-ahead electricity price for a European bidding zone, "
+                        "Ed25519-attested: EUR/MWh now (15-min interval), min/mean/max and "
+                        "negative intervals over the next 24 h. Pass zone (" + zones + "), a "
+                        "one-zone country (\"DE\", \"France\") or a city (\"Lyon\"). "
+                        "Bundesnetzagentur | SMARD.de · CC BY 4.0. Wholesale, not a tariff.",
+            handler=price_read_handler(runtime),
+            product_id=product, input_schema=PRICE_READ_IN, output_schema=PRICE_READ_OUT,
+            price_per_call_usd=0.001, p50_latency_ms=120,
+        ))
+        caps.append(Capability(
+            capability_id="gaia.power.window@v1",
+            description="When is electricity cheapest? The lowest-price contiguous window of "
+                        "duration_hours in the published day-ahead horizon of a bidding "
+                        "zone, versus starting now, with the wholesale energy cost for "
+                        "load_kw. Returns the quarter-hour prices used and their SHA-256 so "
+                        "the answer can be recomputed. SMARD.de · CC BY 4.0.",
+            handler=window_handler(runtime),
+            product_id=product, input_schema=WINDOW_IN, output_schema=WINDOW_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=150,
+        ))
+
+    gazetteer = getattr(runtime, "gazetteer", None)  # duck-typed runtimes may lack it
+    if gazetteer is not None:
+        from gaia.place_resolve import PLACE_RESOLVE_IN, PLACE_RESOLVE_OUT, place_resolve_handler
+
+        caps.append(Capability(
+            capability_id="gaia.place.resolve@v1",
+            description="Free. Place name → one place: \"Kraków\", \"Paris, Texas\", "
+                        "\"Toronto, ON\", \"Москва\", \"東京\" (GeoNames, 171k places of "
+                        "1,000+ people, country names in 16 languages); an ambiguous name "
+                        "returns the candidates instead of a guess. Or latitude+longitude → "
+                        "the nearest place. Says which GAIA weather/air reads cover it. "
+                        "GeoNames · CC BY 4.0.",
+            handler=place_resolve_handler(runtime, gazetteer),
+            product_id=product, input_schema=PLACE_RESOLVE_IN, output_schema=PLACE_RESOLVE_OUT,
+            price_per_call_usd=0.0, p50_latency_ms=5,
+        ))
     return OracleSpec(
         name="GAIA — physical-world oracle gateway",
         product_id=product,
@@ -1575,7 +1734,8 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
                     "air-quality", "energy", "seismic", "tides", "fire", "radiation",
                     "gnss", "traffic", "space-weather", "lightning", "alerts", "ocean",
                     "geomagnetism", "flood", "volcano", "cyclone", "adsb",
-                    "aviation", "road", "rail", "drought", "reservoir", "uv"],
+                    "aviation", "road", "rail", "drought", "reservoir", "uv", "geocoding",
+                    "electricity-prices", "actuation", "satellite-imagery"],
         capabilities=caps,
         signing_key_path=os.environ.get("GAIA_SIGNING_KEY_PATH", "data/gaia_signing_key"),
         version="0.1.0",

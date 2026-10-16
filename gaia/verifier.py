@@ -105,6 +105,9 @@ class VerifierService:
 
     def verify(self, raw_input: Any, min_verify_score: float | None = None) -> dict[str, Any]:
         threshold, threshold_source = self._threshold(min_verify_score)
+        bundle = self._extract_actuation(raw_input)
+        if bundle is not None:
+            return self._verify_actuation(bundle, threshold, threshold_source)
         parsed = self._extract(raw_input)
         if parsed is None:
             return self._error_envelope("unparseable_input", threshold, threshold_source)
@@ -145,6 +148,67 @@ class VerifierService:
             "clarifications": [],
             "usage": {},
             "trace_id": trace_id,
+        }
+
+    # ── Actuation bundles (gaia/actuation.py) ────────────────────────────────
+
+    def _extract_actuation(self, raw: Any) -> dict[str, Any] | None:
+        """An actuation bundle ({actuation, before, after}) from the hub's audit string or a
+        dict, else None — and then the reading path below handles the input as before."""
+        if isinstance(raw, dict):
+            if isinstance(raw.get("actuation"), dict):
+                return raw
+            inner = raw.get("input")
+            return self._extract_actuation(inner) if isinstance(inner, (dict, str)) else None
+        if not isinstance(raw, str) or len(raw) > _MAX_INPUT_CHARS or '"actuation"' not in raw:
+            return None
+        split = _split_delivered(raw)
+        if split is None:
+            return None
+        try:
+            delivered = json.loads(split[1].strip())
+        except (ValueError, RecursionError):
+            return None
+        if isinstance(delivered, dict) and isinstance(delivered.get("actuation"), dict):
+            return delivered
+        return None
+
+    def _verify_actuation(self, bundle: dict[str, Any], threshold: float,
+                          threshold_source: str) -> dict[str, Any]:
+        from gaia.actuation import evaluate
+        from gaia.plausibility import Check, Verdict
+
+        record = (bundle.get("actuation") or {}).get("record") or {}
+        actuator = str(record.get("actuator_id", ""))
+        try:
+            pubkey = self.verifier.fleet.get(actuator).signer.public_key_b64
+        except (ValueError, AttributeError):
+            pubkey = ""
+        if not pubkey:
+            verdict = Verdict(False, 0.0, [Check("actuation:actuator", False,
+                                                 f"{actuator!r} is not an actuator of this GAIA")],
+                              "unknown actuator")
+        else:
+            verdict = evaluate(bundle, pubkey=pubkey, plausibility=self.verifier)
+        if verdict.verified:
+            # One settlement per command: the command seq is wall-clock milliseconds and
+            # only ever grows per actuator, so a replayed bundle meets the high-water.
+            fresh = self._check_and_advance_freshness(
+                {"device_id": f"actuation:{actuator}", "seq": record.get("seq", 0)},
+                advance=True)
+            if fresh is not None:
+                verdict = fresh
+        trace_id = f"gaia_{secrets.token_hex(8)}"
+        after = (bundle.get("after") or {}).get("reading") or {}
+        self._remember(trace_id, f"actuation {record.get('command', '')} {actuator}",
+                       after, verdict)
+        return {
+            "answer": verdict.summary, "status": "success", "verified": verdict.verified,
+            "verify_score": verdict.score, "verify_performed": True,
+            "threshold": round(threshold, 4), "threshold_source": threshold_source,
+            "delivery_verdict": _delivery_verdict(verdict),
+            "route": "fast", "depth": None, "iterations": 1, "clarifications": [],
+            "usage": {}, "trace_id": trace_id,
         }
 
     def trace(self, trace_id: str) -> dict[str, Any] | None:

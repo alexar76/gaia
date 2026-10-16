@@ -102,6 +102,17 @@ curl -s -X POST https://iot.modelmarket.dev/ai-market/v2/invoke \
        "input":{"device_id":"uk-grid-01"}}'
 ```
 
+## 不止读取 — 地点、电价、影像、设备控制
+
+| 能力 | 价格 | 作用 | 指南 |
+|---|---|---|---|
+| `gaia.place.resolve@v1` | 免费 | 按名称查找任意居民点（「Kraków」「Paris, Texas」「東京」）→ 一个地点，名称有歧义时给出候选；说明哪些 GAIA 读数覆盖该点（GeoNames，CC BY 4.0） | [地点](i18n/PLACES.zh.md) |
+| `gaia.power.price.read@v1` | $0.001 | 欧洲某竞价区的日前电价，当前及未来 24 小时（SMARD，CC BY 4.0；15 个区） | [电价](i18n/POWER-PRICES.zh.md) |
+| `gaia.power.window@v1` | $0.002 | N 小时内何时用电最便宜——附所用电价及其 SHA-256（2026-10-16，一次 11 kW 电动车充电从 12:30 开始比从 08:40 开始便宜 38%） | [电价](i18n/POWER-PRICES.zh.md) |
+| `gaia.imagery.read@v1` | $0.005 | 任意陆地点最新的无云 Sentinel-2 影像：NDVI、NDWI、NBR、NDMI | [影像](i18n/IMAGERY.zh.md) |
+| `gaia.actuator.list@v1` | 免费 | 运营方可切换的设备及其限值 | [设备控制](i18n/ACTUATION.zh.md) |
+| `gaia.actuate@v1` | $0.05 | 将计量插座打开 N 秒或关闭——**只为其电表测得的效果付费**（Pay-on-Verified） | [设备控制](i18n/ACTUATION.zh.md) |
+
 ## 许可
 
 MIT — 见 [LICENSE](../LICENSE)。

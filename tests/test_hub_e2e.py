@@ -49,6 +49,9 @@ def world(tmp_path, monkeypatch):
     monkeypatch.setenv("AIFACTORY_CRYPTO_ENABLED", "1")
     monkeypatch.setenv("AIMARKET_ALLOW_DEMO_CREDIT", "1")
     monkeypatch.setenv("AIMARKET_SKIP_SEED", "1")
+    # Never crawl the real federation from a test: a seed host that hangs (admin-vps on
+    # 2026-10-16) kept the TestClient waiting on the crawl thread at shutdown, forever.
+    monkeypatch.setenv("AIMARKET_AUTO_CRAWL", "0")
     monkeypatch.setenv("AIMARKET_VERIFY_MIN_PRICE_USD", "0.0005")  # verify sub-cent reads
     monkeypatch.setenv("AIMARKET_VERIFY_RETRY_BACKOFF_S", "0.05")
     monkeypatch.setenv("AIMARKET_VERIFY_METIS_URL", "http://gaia.verify")

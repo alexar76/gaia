@@ -53,9 +53,40 @@ PHYSICS: dict[str, FieldPhysics] = {
     "current_a": FieldPhysics(0.0, 64.0, 6.0, None, 0.05, z_check=False),
     "power_w": FieldPhysics(0.0, 15_000.0, 1500.0, None, 10.0, z_check=False),
     "energy_wh": FieldPhysics(0.0, 1e12, 0.0, None, monotonic=True),
+    # A switched socket's relay state (smart plugs, gaia/devices/plug.py): 0 or 1.
+    "relay_on": FieldPhysics(0.0, 1.0, 1.0, None, 0.1, z_check=False),
     # Live relays beyond indoor sensors — event / grid / coastal series.
     # z_check off: half-hour grid steps and earthquake events are not OU noise.
     "carbon_intensity_gco2_kwh": FieldPhysics(0.0, 1500.0, 80.0, None, 5.0, z_check=False),
+    # Day-ahead exchange prices (SMARD). Bounds are the SDAC harmonised clearing limits
+    # with headroom: the floor is -500 EUR/MWh and the cap (4000) rises automatically
+    # after a spike, so 10000 leaves room for a crisis without convicting it. Prices jump
+    # tenfold between quarter-hours honestly; no rate or z statistics apply.
+    "price_eur_mwh": FieldPhysics(-500.0, 10_000.0, 10_500.0, None, 1.0, z_check=False),
+    "price_min_24h_eur_mwh": FieldPhysics(-500.0, 10_000.0, 10_500.0, None, 1.0, z_check=False),
+    "price_mean_24h_eur_mwh": FieldPhysics(-500.0, 10_000.0, 10_500.0, None, 1.0, z_check=False),
+    "price_max_24h_eur_mwh": FieldPhysics(-500.0, 10_000.0, 10_500.0, None, 1.0, z_check=False),
+    "negative_intervals_24h": FieldPhysics(0.0, 200.0, 200.0, None, 1.0, z_check=False),
+    "interval_start_unix": FieldPhysics(1.6e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "horizon_end_unix": FieldPhysics(1.6e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "resolution_min": FieldPhysics(1.0, 60.0, 60.0, None, 1.0, z_check=False),
+    # Sentinel-2 L2A at a point. Indices are bounded ratios; reflectance may dip a little
+    # below 0 over dark water where an older processing baseline subtracts its offset,
+    # and exceeds 1 only over snow and glint. A pixel's next look can be a different
+    # season, so no rate or z statistics apply.
+    "ndvi": FieldPhysics(-1.0, 1.0, 2.0, None, 0.05, z_check=False),
+    "ndwi": FieldPhysics(-1.0, 1.0, 2.0, None, 0.05, z_check=False),
+    "nbr": FieldPhysics(-1.0, 1.0, 2.0, None, 0.05, z_check=False),
+    "ndmi": FieldPhysics(-1.0, 1.0, 2.0, None, 0.05, z_check=False),
+    "reflectance_green": FieldPhysics(-0.1, 1.6, 2.0, None, 0.01, z_check=False),
+    "reflectance_red": FieldPhysics(-0.1, 1.6, 2.0, None, 0.01, z_check=False),
+    "reflectance_nir": FieldPhysics(-0.1, 1.6, 2.0, None, 0.01, z_check=False),
+    "reflectance_swir16": FieldPhysics(-0.1, 1.6, 2.0, None, 0.01, z_check=False),
+    "reflectance_swir22": FieldPhysics(-0.1, 1.6, 2.0, None, 0.01, z_check=False),
+    "scene_class": FieldPhysics(0.0, 11.0, 11.0, None, 1.0, z_check=False),
+    "scene_cloud_pct": FieldPhysics(0.0, 100.0, 100.0, None, 1.0, z_check=False),
+    "observation_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "observation_age_days": FieldPhysics(0.0, 400.0, 400.0, None, 1.0, z_check=False),
     "magnitude": FieldPhysics(0.0, 10.0, 10.0, None, 0.1, z_check=False, stuck_check=False),
     "depth_km": FieldPhysics(-5.0, 800.0, 50.0, None, 1.0, z_check=False),
     "latitude": FieldPhysics(-90.0, 90.0, 180.0, None, 0.01, z_check=False, stuck_check=False),
@@ -143,6 +174,11 @@ PHYSICS: dict[str, FieldPhysics] = {
 # register rollback) and the dead-sensor signature (a continuous field frozen
 # to 4 decimals) are not statistical judgement calls.
 _HARD_FAMILIES = ("bounds", "monotonic", "stuck", "schema")
+
+#: One 16 A socket at 230 V: the most a plug's register can gain per hour.
+_SOCKET_MAX_W = 3680.0
+#: What an open relay may still meter (the plug's own electronics, sensor offset).
+_RELAY_OFF_MAX_W = 25.0
 
 # Sibling agreement tolerances — only fields where two co-located same-model
 # sensors genuinely measure one shared truth.
@@ -393,7 +429,29 @@ class PlausibilityVerifier:
             ok = lo <= float(p) <= hi
             out.append(Check("consistency:power", ok,
                              f"power {float(p):.1f}W vs V·I={apparent:.1f}VA (pf-band [{max(0.0,lo):.0f},{hi:.0f}])"))
+        relay = values.get("relay_on")
+        if isinstance(relay, (int, float)) and isinstance(p, (int, float)):
+            # An open relay passes no load: a plug that says "off" while metering a
+            # heater's draw is lying in one of the two fields.
+            ok = float(relay) >= 0.5 or float(p) <= _RELAY_OFF_MAX_W
+            out.append(Check("consistency:relay", ok,
+                             f"relay {'on' if float(relay) >= 0.5 else 'off'} at {float(p):.1f} W"
+                             + ("" if ok else f" (an open relay passes ≤ {_RELAY_OFF_MAX_W:g} W)")))
         e = values.get("energy_wh")
+        if (prev is not None and isinstance(relay, (int, float)) and isinstance(e, (int, float))):
+            # A switched socket's power steps whenever it is switched, so the register
+            # cannot be checked against the present power times the gap: on for ten
+            # minutes of the last three hours is honest. It can still be checked against
+            # what the socket could physically have passed in that time.
+            prev_e = prev.get("values", {}).get("energy_wh")
+            if isinstance(prev_e, (int, float)):
+                dt_h = max(0.0, (_parse_ts(reading.get("ts", "")) - _parse_ts(prev.get("ts", ""))) / 3600.0)
+                delta = float(e) - float(prev_e)
+                cap = _SOCKET_MAX_W * dt_h + 5.0
+                ok = delta <= cap
+                out.append(Check("consistency:energy", ok,
+                                 f"Δenergy {delta:.2f}Wh vs socket maximum {cap:.2f}Wh"))
+            return out
         if prev is not None and isinstance(e, (int, float)) and isinstance(p, (int, float)):
             prev_e = prev.get("values", {}).get("energy_wh")
             if isinstance(prev_e, (int, float)):

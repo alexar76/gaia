@@ -585,6 +585,28 @@ APPROVED_SOURCES: dict[str, SourcePolicy] = {
         requires_operator_account=True,
         licence_url="https://creativecommons.org/licenses/by/4.0/",
     ),
+    "smard": SourcePolicy(
+        "smard", "SMARD.de (Bundesnetzagentur) day-ahead prices", "CC BY 4.0",
+        "Commercial reuse is permitted with attribution to Bundesnetzagentur | SMARD.de. Fifteen bidding zones whose SMARD series are CC BY 4.0 (DE-LU and its coupled neighbours). Zones that Energy-Charts marks 'private and internal use only' (SE1-SE3, FI, EE, LT, LV, ES, IT-South) are deliberately not offered. Wholesale exchange price, not a retail tariff.",
+        "Bundesnetzagentur | SMARD.de · CC BY 4.0",
+        ("www.smard.de",),
+        licence_url="https://www.smard.de/home/nutzungsbedingungen-231266",
+    ),
+    "copernicus_sentinel2": SourcePolicy(
+        "copernicus_sentinel2", "Copernicus Sentinel-2 L2A (Earth Search STAC, AWS Open Data COGs)",
+        "Copernicus Sentinel Data Terms (free, full and open)",
+        "Commercial use, reproduction and modification are permitted under the Legal Notice on the use of Copernicus Sentinel Data, with the credit 'Contains modified Copernicus Sentinel data <year>'. Earth Search (Element84) indexes the public sentinel-cogs bucket of the AWS Open Data Registry; no key, no account.",
+        "Contains modified Copernicus Sentinel data · processed via Element84 Earth Search",
+        ("earth-search.aws.element84.com", "sentinel-cogs.s3.us-west-2.amazonaws.com"),
+        licence_url="https://sentinels.copernicus.eu/documents/247904/690755/Sentinel_Data_Legal_Notice",
+    ),
+    "geonames": SourcePolicy(
+        "geonames", "GeoNames gazetteer (cities1000, admin1, countryInfo)", "CC BY 4.0",
+        "Commercial reuse is permitted with attribution to GeoNames. Used to turn place names into coordinates (gaia.place.resolve@v1 and the place field of weather/air reads); not a sensor and never a reading.",
+        "GeoNames (geonames.org) · CC BY 4.0",
+        ("download.geonames.org",),
+        licence_url="https://creativecommons.org/licenses/by/4.0/",
+    ),
 }
 
 

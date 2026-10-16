@@ -1,0 +1,313 @@
+AU.08	Western Australia	Western Australia	2058645
+AU.05	South Australia	South Australia	2061327
+AU.03	Northern Territory	Northern Territory	2064513
+AU.07	Victoria	Victoria	2145234
+AU.06	Tasmania	Tasmania	2147291
+AU.04	Queensland	Queensland	2152274
+AU.02	New South Wales	New South Wales	2155400
+AU.01	Australian Capital Territory	Australian Capital Territory	2177478
+CA.01	Alberta	Alberta	5883102
+CA.02	British Columbia	British Columbia	5909050
+CA.03	Manitoba	Manitoba	6065171
+CA.04	New Brunswick	New Brunswick	6087430
+CA.13	Northwest Territories	Northwest Territories	6091069
+CA.07	Nova Scotia	Nova Scotia	6091530
+CA.14	Nunavut	Nunavut	6091732
+CA.08	Ontario	Ontario	6093943
+CA.09	Prince Edward Island	Prince Edward Island	6113358
+CA.10	Quebec	Quebec	6115047
+CA.11	Saskatchewan	Saskatchewan	6141242
+CA.12	Yukon	Yukon	6185811
+CA.05	Newfoundland and Labrador	Newfoundland and Labrador	6354959
+DE.15	Thuringia	Thuringia	2822542
+DE.10	Schleswig-Holstein	Schleswig-Holstein	2838632
+DE.14	Saxony-Anhalt	Saxony-Anhalt	2842565
+DE.13	Saxony	Saxony	2842566
+DE.09	Saarland	Saarland	2842635
+DE.08	Rheinland-Pfalz	Rheinland-Pfalz	2847618
+DE.07	North Rhine-Westphalia	North Rhine-Westphalia	2861876
+DE.06	Lower Saxony	Lower Saxony	2862926
+DE.12	Mecklenburg-Vorpommern	Mecklenburg-Vorpommern	2872567
+DE.05	Hesse	Hesse	2905330
+DE.04	Hamburg	Hamburg	2911297
+DE.03	Bremen	Bremen	2944387
+DE.11	Brandenburg	Brandenburg	2945356
+DE.16	State of Berlin	State of Berlin	2950157
+DE.02	Bavaria	Bavaria	2951839
+DE.01	Baden-Wurttemberg	Baden-Wurttemberg	2953481
+FR.93	Provence-Alpes-Côte d'Azur	Provence-Alpes-Cote d'Azur	2985244
+FR.52	Pays de la Loire	Pays de la Loire	2988289
+FR.11	Île-de-France	Ile-de-France	3012874
+FR.94	Corsica	Corsica	3023519
+FR.24	Centre-Val de Loire	Centre-Val de Loire	3027939
+FR.53	Brittany	Brittany	3030293
+FR.27	Bourgogne-Franche-Comté	Bourgogne-Franche-Comte	11071619
+FR.75	New Aquitaine	New Aquitaine	11071620
+FR.28	Normandy	Normandy	11071621
+FR.44	Grand Est	Grand Est	11071622
+FR.76	Occitanie	Occitanie	11071623
+FR.32	Hauts-de-France	Hauts-de-France	11071624
+FR.84	Auvergne-Rhône-Alpes	Auvergne-Rhone-Alpes	11071625
+GB.WLS	Wales	Wales	2634895
+GB.SCT	Scotland	Scotland	2638360
+GB.NIR	Northern Ireland	Northern Ireland	2641364
+GB.ENG	England	England	6269131
+HK.NYL	Yuen Long	Yuen Long	1818224
+HK.NTW	Tsuen Wan	Tsuen Wan	1818458
+HK.NTP	Tai Po	Tai Po	1818672
+HK.NSK	Sai Kung District	Sai Kung District	1819049
+HK.NIS	Islands	Islands	1819708
+HK.HCW	Central and Western	Central and Western	7533598
+HK.HWC	Wan Chai	Wan Chai	7533607
+HK.HEA	Eastern District	Eastern District	7533608
+HK.HSO	Southern District	Southern District	7533609
+HK.KYT	Yau Tsim Mong District	Yau Tsim Mong District	7533610
+HK.KSS	Sham Shui Po District	Sham Shui Po District	7533611
+HK.KKC	Kowloon City	Kowloon City	7533612
+HK.KWT	Wong Tai Sin District	Wong Tai Sin District	7533613
+HK.KKT	Kwun Tong District	Kwun Tong District	7533614
+HK.NKT	Kwai Tsing District	Kwai Tsing District	7533615
+HK.NTM	Tuen Mun	Tuen Mun	7533616
+HK.NNO	North District	North District	7533617
+HK.NST	Sha Tin	Sha Tin	7533618
+IS.41	Northwest	Northwest	3337403
+IS.40	Northeast	Northeast	3337404
+IS.38	East	East	3337405
+IS.42	South	South	3337406
+IS.39	Capital Region	Capital Region	3426182
+IS.43	Southern Peninsula	Southern Peninsula	3426183
+IS.45	West	West	3426184
+IS.44	Westfjords	Westfjords	3426185
+JP.46	Yamanashi	Yamanashi	1848649
+JP.45	Yamaguchi	Yamaguchi	1848681
+JP.43	Wakayama	Wakayama	1848938
+JP.42	Toyama	Toyama	1849872
+JP.41	Tottori	Tottori	1849890
+JP.40	Tokyo	Tokyo	1850144
+JP.39	Tokushima	Tokushima	1850157
+JP.38	Tochigi	Tochigi	1850310
+JP.37	Shizuoka	Shizuoka	1851715
+JP.36	Shimane	Shimane	1852442
+JP.35	Shiga	Shiga	1852553
+JP.34	Saitama	Saitama	1853226
+JP.33	Saga	Saga	1853299
+JP.32	Osaka	Osaka	1853904
+JP.47	Okinawa	Okinawa	1854345
+JP.31	Okayama	Okayama	1854381
+JP.30	Oita	Oita	1854484
+JP.29	Niigata	Niigata	1855429
+JP.28	Nara	Nara	1855608
+JP.27	Nagasaki	Nagasaki	1856156
+JP.26	Nagano	Nagano	1856210
+JP.25	Miyazaki	Miyazaki	1856710
+JP.23	Mie	Mie	1857352
+JP.22	Kyoto	Kyoto	1857907
+JP.21	Kumamoto	Kumamoto	1858419
+JP.20	Kochi	Kochi	1859133
+JP.19	Kanagawa	Kanagawa	1860291
+JP.18	Kagoshima	Kagoshima	1860825
+JP.17	Kagawa	Kagawa	1860834
+JP.15	Ishikawa	Ishikawa	1861387
+JP.13	Hyōgo	Hyogo	1862047
+JP.11	Hiroshima	Hiroshima	1862413
+JP.10	Gunma	Gunma	1863501
+JP.09	Gifu	Gifu	1863640
+JP.07	Fukuoka	Fukuoka	1863958
+JP.06	Fukui	Fukui	1863983
+JP.05	Ehime	Ehime	1864226
+JP.01	Aichi	Aichi	1865694
+JP.44	Yamagata	Yamagata	2110554
+JP.24	Miyagi	Miyagi	2111888
+JP.16	Iwate	Iwate	2112518
+JP.14	Ibaraki	Ibaraki	2112669
+JP.08	Fukushima	Fukushima	2112922
+JP.04	Chiba	Chiba	2113014
+JP.02	Akita	Akita	2113124
+JP.12	Hokkaido	Hokkaido	2130037
+JP.03	Aomori	Aomori	2130656
+PL.75	Lublin	Lublin	858785
+PL.77	Lesser Poland	Lesser Poland	858786
+PL.78	Mazovia	Mazovia	858787
+PL.80	Subcarpathia	Subcarpathia	858788
+PL.81	Podlasie	Podlasie	858789
+PL.84	Świętokrzyskie	Swietokrzyskie	858790
+PL.85	Warmia-Masuria	Warmia-Masuria	858791
+PL.72	Lower Silesia	Lower Silesia	3337492
+PL.74	Łódź Voivodeship	Lodz Voivodeship	3337493
+PL.76	Lubusz	Lubusz	3337494
+PL.79	Opole Voivodeship	Opole Voivodeship	3337495
+PL.82	Pomerania	Pomerania	3337496
+PL.83	Silesia	Silesia	3337497
+PL.86	Greater Poland	Greater Poland	3337498
+PL.87	West Pomerania	West Pomerania	3337499
+PL.73	Kujawsko-Pomorskie	Kujawsko-Pomorskie	3337500
+RU.88	Yaroslavl Oblast	Yaroslavl Oblast	468898
+RU.86	Voronezh Oblast	Voronezh Oblast	472039
+RU.85	Vologda Oblast	Vologda Oblast	472454
+RU.84	Volgograd Oblast	Volgograd Oblast	472755
+RU.81	Ulyanovsk	Ulyanovsk	479119
+RU.80	Udmurtiya Republic	Udmurtiya Republic	479613
+RU.77	Tver Oblast	Tver Oblast	480041
+RU.76	Tula Oblast	Tula Oblast	480508
+RU.73	Tatarstan Republic	Tatarstan Republic	484048
+RU.72	Tambov Oblast	Tambov Oblast	484638
+RU.70	Stavropol Kray	Stavropol Kray	487839
+RU.69	Smolensk Oblast	Smolensk Oblast	491684
+RU.67	Saratov Oblast	Saratov Oblast	498671
+RU.65	Samara Oblast	Samara Oblast	499068
+RU.62	Ryazan Oblast	Ryazan Oblast	500059
+RU.61	Rostov	Rostov	501165
+RU.60	Pskov Oblast	Pskov Oblast	504338
+RU.90	Perm Krai	Perm Krai	511180
+RU.57	Penza Oblast	Penza Oblast	511555
+RU.56	Oryol oblast	Oryol oblast	514801
+RU.55	Orenburg Oblast	Orenburg Oblast	515001
+RU.52	Novgorod Oblast	Novgorod Oblast	519324
+RU.68	North Ossetia–Alania	North Ossetia-Alania	519969
+RU.50	Nenets	Nenets	522652
+RU.49	Murmansk	Murmansk	524304
+RU.48	Moscow	Moscow	524894
+RU.47	Moscow Oblast	Moscow Oblast	524925
+RU.46	Mordoviya Republic	Mordoviya Republic	525369
+RU.45	Mariy-El Republic	Mariy-El Republic	529352
+RU.43	Lipetsk Oblast	Lipetsk Oblast	535120
+RU.42	Leningradskaya Oblast'	Leningradskaya Oblast'	536199
+RU.66	St.-Petersburg	St.-Petersburg	536203
+RU.41	Kursk Oblast	Kursk Oblast	538555
+RU.38	Krasnodar Krai	Krasnodar Krai	542415
+RU.37	Kostroma Oblast	Kostroma Oblast	543871
+RU.34	Komi	Komi	545854
+RU.33	Kirov Oblast	Kirov Oblast	548389
+RU.28	Karelia	Karelia	552548
+RU.27	Karachayevo-Cherkesiya Republic	Karachayevo-Cherkesiya Republic	552927
+RU.25	Kaluga Oblast	Kaluga Oblast	553899
+RU.24	Kalmykiya Republic	Kalmykiya Republic	553972
+RU.23	Kaliningrad Oblast	Kaliningrad Oblast	554230
+RU.22	Kabardino-Balkariya Republic	Kabardino-Balkariya Republic	554667
+RU.21	Ivanovo Oblast	Ivanovo Oblast	555235
+RU.19	Ingushetiya Republic	Ingushetiya Republic	556349
+RU.51	Nizhny Novgorod Oblast	Nizhny Novgorod Oblast	559838
+RU.17	Dagestan	Dagestan	567293
+RU.16	Chuvash Republic	Chuvash Republic	567395
+RU.12	Chechnya	Chechnya	569665
+RU.10	Bryansk Oblast	Bryansk Oblast	571473
+RU.09	Belgorod Oblast	Belgorod Oblast	578071
+RU.08	Bashkortostan Republic	Bashkortostan Republic	578853
+RU.07	Astrakhan Oblast	Astrakhan Oblast	580491
+RU.06	Arkhangelskaya	Arkhangelskaya	581043
+RU.01	Adygeya Republic	Adygeya Republic	584222
+RU.83	Vladimir Oblast	Vladimir Oblast	826294
+RU.87	Yamalo-Nenets	Yamalo-Nenets	1486462
+RU.78	Tyumen Oblast	Tyumen Oblast	1488747
+RU.79	Republic of Tyva	Republic of Tyva	1488873
+RU.75	Tomsk Oblast	Tomsk Oblast	1489421
+RU.71	Sverdlovsk Oblast	Sverdlovsk Oblast	1490542
+RU.54	Omsk Oblast	Omsk Oblast	1496152
+RU.53	Novosibirsk Oblast	Novosibirsk Oblast	1496745
+RU.40	Kurgan Oblast	Kurgan Oblast	1501312
+RU.91	Krasnoyarsk Krai	Krasnoyarsk Krai	1502020
+RU.32	Khanty-Mansia	Khanty-Mansia	1503773
+RU.31	Khakasiya Republic	Khakasiya Republic	1503834
+RU.29	Kuzbass	Kuzbass	1503900
+RU.03	Altai	Altai	1506272
+RU.13	Chelyabinsk	Chelyabinsk	1508290
+RU.04	Altai Krai	Altai Krai	1511732
+RU.63	Sakha	Sakha	2013162
+RU.59	Primorye	Primorye	2017623
+RU.30	Khabarovsk	Khabarovsk	2022888
+RU.20	Irkutsk Oblast	Irkutsk Oblast	2023468
+RU.89	Jewish Autonomous Oblast	Jewish Autonomous Oblast	2026639
+RU.05	Amur Oblast	Amur Oblast	2027748
+RU.11	Buryatiya Republic	Buryatiya Republic	2050915
+RU.64	Sakhalin Oblast	Sakhalin Oblast	2121529
+RU.44	Magadan Oblast	Magadan Oblast	2123627
+RU.92	Kamchatka	Kamchatka	2125072
+RU.15	Chukotka	Chukotka	2126099
+RU.93	Zabaykalskiy (Transbaikal) Kray	Zabaykalskiy (Transbaikal) Kray	7779061
+UA.27	Zhytomyr Oblast	Zhytomyr Oblast	686966
+UA.26	Zaporizhzhia	Zaporizhzhia	687699
+UA.25	Zakarpattia	Zakarpattia	687869
+UA.24	Volyn	Volyn	689064
+UA.23	Vinnytsia	Vinnytsia	689559
+UA.22	Ternopil	Ternopil	691649
+UA.21	Sumy	Sumy	692196
+UA.20	Sevastopol City	Sevastopol City	694422
+UA.19	Rivne Oblast	Rivne Oblast	695592
+UA.18	Poltava	Poltava	696634
+UA.17	Odesa	Odesa	698738
+UA.16	Mykolaiv	Mykolaiv	700567
+UA.15	Lviv	Lviv	702549
+UA.14	Luhansk	Luhansk	702657
+UA.13	Kyiv Oblast	Kyiv Oblast	703446
+UA.12	Kyiv City	Kyiv City	703447
+UA.11	Crimea	Crimea	703883
+UA.10	Kirovohrad	Kirovohrad	705811
+UA.09	Khmelnytskyi	Khmelnytskyi	706370
+UA.08	Kherson	Kherson	706442
+UA.07	Kharkiv	Kharkiv	706482
+UA.06	Ivano-Frankivsk	Ivano-Frankivsk	707470
+UA.05	Donetsk	Donetsk	709716
+UA.04	Dnipropetrovsk	Dnipropetrovsk	709929
+UA.03	Chernivtsi	Chernivtsi	710720
+UA.02	Chernihiv Oblast	Chernihiv Oblast	710734
+UA.01	Cherkasy	Cherkasy	710802
+US.AR	Arkansas	Arkansas	4099753
+US.DC	District of Columbia	District of Columbia	4138106
+US.DE	Delaware	Delaware	4142224
+US.FL	Florida	Florida	4155751
+US.GA	Georgia	Georgia	4197000
+US.KS	Kansas	Kansas	4273857
+US.LA	Louisiana	Louisiana	4331987
+US.MD	Maryland	Maryland	4361885
+US.MO	Missouri	Missouri	4398678
+US.MS	Mississippi	Mississippi	4436296
+US.NC	North Carolina	North Carolina	4482348
+US.OK	Oklahoma	Oklahoma	4544379
+US.SC	South Carolina	South Carolina	4597040
+US.TN	Tennessee	Tennessee	4662168
+US.TX	Texas	Texas	4736286
+US.WV	West Virginia	West Virginia	4826850
+US.AL	Alabama	Alabama	4829764
+US.CT	Connecticut	Connecticut	4831725
+US.IA	Iowa	Iowa	4862182
+US.IL	Illinois	Illinois	4896861
+US.IN	Indiana	Indiana	4921868
+US.ME	Maine	Maine	4971068
+US.MI	Michigan	Michigan	5001836
+US.MN	Minnesota	Minnesota	5037779
+US.NE	Nebraska	Nebraska	5073708
+US.NH	New Hampshire	New Hampshire	5090174
+US.NJ	New Jersey	New Jersey	5101760
+US.NY	New York	New York	5128638
+US.OH	Ohio	Ohio	5165418
+US.RI	Rhode Island	Rhode Island	5224323
+US.VT	Vermont	Vermont	5242283
+US.WI	Wisconsin	Wisconsin	5279468
+US.CA	California	California	5332921
+US.CO	Colorado	Colorado	5417618
+US.NM	New Mexico	New Mexico	5481136
+US.NV	Nevada	Nevada	5509151
+US.UT	Utah	Utah	5549030
+US.AZ	Arizona	Arizona	5551752
+US.ID	Idaho	Idaho	5596512
+US.MT	Montana	Montana	5667009
+US.ND	North Dakota	North Dakota	5690763
+US.OR	Oregon	Oregon	5744337
+US.SD	South Dakota	South Dakota	5769223
+US.WA	Washington	Washington	5815135
+US.WY	Wyoming	Wyoming	5843591
+US.HI	Hawaii	Hawaii	5855797
+US.AK	Alaska	Alaska	5879092
+US.KY	Kentucky	Kentucky	6254925
+US.MA	Massachusetts	Massachusetts	6254926
+US.PA	Pennsylvania	Pennsylvania	6254927
+US.VA	Virginia	Virginia	6254928
+ZA.03	Free State	Free State	967573
+ZA.02	KwaZulu-Natal	KwaZulu-Natal	972062
+ZA.05	Eastern Cape	Eastern Cape	1085593
+ZA.06	Gauteng	Gauteng	1085594
+ZA.07	Mpumalanga	Mpumalanga	1085595
+ZA.08	Northern Cape	Northern Cape	1085596
+ZA.09	Limpopo	Limpopo	1085597
+ZA.10	North West	North West	1085598
+ZA.11	Western Cape	Western Cape	1085599

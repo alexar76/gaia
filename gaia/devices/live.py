@@ -843,6 +843,19 @@ def build_live_fleet(clock: SimClock, key_dir: str = "data/devices") -> Fleet:
     if n_p12:
         log.info("Registered %s P12 LIVE relay(s)", n_p12)
 
+    # Sentinel-2 L2A at any coordinate (Copernicus via Earth Search; point-queried).
+    from gaia.devices.live_imagery import register_imagery
+
+    if register_imagery(fleet, clock, key_dir=key_dir):
+        log.info("Registered the Sentinel-2 L2A point relay")
+
+    # Day-ahead electricity prices, one relay per bidding zone (SMARD, CC BY 4.0).
+    from gaia.devices.live_power import register_power_prices
+
+    n_power = register_power_prices(fleet, clock, key_dir=key_dir)
+    if n_power:
+        log.info("Registered %s day-ahead power price relay(s)", n_power)
+
     # Own-edge ADS-B / AIS / IoT feeders (opt-in; offline until ingest push).
     from gaia.devices.feeder import register_feeders
 

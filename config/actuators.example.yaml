@@ -1,0 +1,24 @@
+# A real Tasmota metering plug on your own MQTT broker.
+#
+#   GAIA_ACTUATION_ENABLED=1
+#   GAIA_ACTUATORS_FILE=/path/to/this/file.yaml
+#   GAIA_MQTT_BROKER=mqtt://192.168.1.10:1883      (mqtts:// for TLS)
+#   GAIA_MQTT_USERNAME=gaia   GAIA_MQTT_PASSWORD=…  (from your secret store, never a file in git)
+#   GAIA_ACTUATION_TOKEN=…                           (Bearer token for the kill switch API)
+#
+# The plug must report energy (an energy-monitoring model) and answer "Status 8".
+# ON is sent as "PulseTime1 <duration>; Power1 ON", so the plug switches itself off
+# after the paid duration even if GAIA or the broker goes away.
+actuators:
+  - id: lab-heater-01
+    kind: tasmota-mqtt
+    topic: tasmota_lab_heater   # the plug's %topic%
+    label: "Lab oil heater (2 kW)"
+    expect_on_w: 800            # below the heater's draw, above anything the plug idles at
+    off_max_w: 5
+    min_on_s: 30
+    max_on_s: 1800
+    cooldown_s: 60
+    effect_timeout_s: 20
+    latitude: 52.5200           # optional: where ATLAS shows it
+    longitude: 13.4050

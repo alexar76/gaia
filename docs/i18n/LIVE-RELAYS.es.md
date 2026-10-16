@@ -191,6 +191,15 @@ Un punto ATLAS corresponde a una coordenada de lectura. Las redes publican todas
 
 Los registros RadNet y DART se actualizan juntos con `python3 scripts/update_p4_networks.py`, que escribe las copias de despliegue de GAIA y ATLAS.
 
+## P13 — precios eléctricos del día siguiente e imágenes Sentinel-2
+
+| device_id | SKU | Fuente | Licencia / alcance |
+|-----------|-----|--------|--------------------|
+| `smard-price-<zona>` (15 zonas: `de-lu`, `at`, `be`, `no2`, `dk1`, `dk2`, `fr`, `it-north`, `nl`, `pl`, `se4`, `ch`, `si`, `cz`, `hu`) | `gaia.power.price.read@v1`, `gaia.power.window@v1` | Series del día siguiente de SMARD.de (Bundesnetzagentur), bloques semanales por cuarto de hora | **CC BY 4.0** — citar Bundesnetzagentur / SMARD.de. Precio mayorista de bolsa, no una tarifa. Series emparejadas con zonas por valores. `GAIA_SMARD_ZONES` limita las zonas, `GAIA_SMARD_ENABLED=0` las desactiva. [Guía](POWER-PRICES.es.md) |
+| `s2-l2a-01` (consulta por punto) | `gaia.imagery.read@v1` | STAC de Element84 Earth Search + AWS Open Data `sentinel-cogs` | **Datos Copernicus Sentinel** — libres, completos y abiertos, incluido el uso comercial; crédito «Contains modified Copernicus Sentinel data <año>». Un píxel de la escena despejada más reciente. `GAIA_S2_ENABLED=0` lo desactiva. [Guía](IMAGERY.es.md) |
+
+No son relés, pero salieron en la misma tanda: `gaia.place.resolve@v1`, gratuita ([nomenclátor GeoNames](PLACES.es.md)), y el control de dispositivos con pago verificado `gaia.actuate@v1` ([guía](ACTUATION.es.md)).
+
 ## No incluido como SKU de pago
 
 | Fuente | Por qué |

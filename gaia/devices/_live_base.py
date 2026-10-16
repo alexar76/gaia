@@ -104,6 +104,30 @@ _FIELD_UNITS: dict[str, str] = {
     "solar_wind_kms": "km/s",
     "bt_nt": "nT",
     "xray_flux": "W/m2",
+    "relay_on": "bool",
+    # Sentinel-2 L2A at a point
+    "ndvi": "index",
+    "ndwi": "index",
+    "nbr": "index",
+    "ndmi": "index",
+    "reflectance_green": "reflectance",
+    "reflectance_red": "reflectance",
+    "reflectance_nir": "reflectance",
+    "reflectance_swir16": "reflectance",
+    "reflectance_swir22": "reflectance",
+    "scene_class": "SCL",
+    "scene_cloud_pct": "percent",
+    "observation_unix": "s",
+    "observation_age_days": "d",
+    # Day-ahead electricity prices (SMARD)
+    "price_eur_mwh": "EUR/MWh",
+    "price_min_24h_eur_mwh": "EUR/MWh",
+    "price_mean_24h_eur_mwh": "EUR/MWh",
+    "price_max_24h_eur_mwh": "EUR/MWh",
+    "negative_intervals_24h": "count",
+    "interval_start_unix": "s",
+    "horizon_end_unix": "s",
+    "resolution_min": "min",
 }
 
 _UA = "GAIA-oracle/0.1 (+https://iot.modelmarket.dev; contact@modelmarket.dev)"
