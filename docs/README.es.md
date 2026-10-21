@@ -6,7 +6,7 @@
 
 <!-- aicom-readme-badges -->
 <p align="center">
-  <a href="https://github.com/alexar76/gaia/actions/workflows/ci.yml"><img src="../docs/badges/ci.svg" alt="CI" /></a>
+  <a href="https://github.com/alexar76/gaia/actions/workflows/ci.yml"><img src="https://github.com/alexar76/gaia/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
   <a href="https://iot.modelmarket.dev/"><img src="../docs/badges/demo.svg" alt="Live demo" /></a>
   <a href="https://alexar76.github.io/gaia/"><img src="../docs/badges/landing.svg" alt="Landing" /></a>
   <img src="../docs/badges/python.svg" alt="Python >=3.11" />

@@ -8,7 +8,7 @@ updates:
   schedule:
     interval: weekly
     day: monday
-  open-pull-requests-limit: 10
+  open-pull-requests-limit: 5
   groups:
     npm-security:
       applies-to: security-updates
@@ -20,3 +20,8 @@ updates:
       update-types:
       - minor
       - patch
+    npm-major:
+      patterns:
+      - '*'
+      update-types:
+      - major
