@@ -6,4 +6,4 @@ speaks the Metis ``/v1/verify`` envelope — so the hub's Pay-on-Verified escrow
 can settle sensor readings the same way it settles any other capability.
 """
 
-__version__ = "0.2.0"
+__version__ = "0.2.1"

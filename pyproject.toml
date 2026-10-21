@@ -8,7 +8,7 @@ name = "aimarket-gaia-gateway"
 # Bumped because the tree diverged from the published 0.1.2 wheel: `pip install
 # aimarket-gaia-gateway==0.1.2` served code this tree had already moved past, at the same version
 # string, so every fix in it was unpublishable and unreachable.
-version = "0.2.0"
+version = "0.2.1"
 description = "GAIA — physical-world oracle gateway: virtual IoT devices sold as signed, verifiable AIMarket capabilities"
 readme = "README.md"
 requires-python = ">=3.11"
