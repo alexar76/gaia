@@ -9,7 +9,7 @@ resolution-markers = [
 
 [[package]]
 name = "aimarket-gaia-gateway"
-version = "0.2.0"
+version = "0.2.2"
 source = { editable = "." }
 dependencies = [
     { name = "aimarket-oracle-core" },
@@ -36,7 +36,7 @@ mqtt = [
 
 [package.metadata]
 requires-dist = [
-    { name = "aimarket-oracle-core", specifier = ">=0.2" },
+    { name = "aimarket-oracle-core", specifier = ">=0.6" },
     { name = "eth-account", specifier = ">=0.13" },
     { name = "h5py", specifier = ">=3.10" },
     { name = "httpx", specifier = ">=0.27.0" },
@@ -54,7 +54,7 @@ provides-extras = ["mqtt", "dev"]
 
 [[package]]
 name = "aimarket-oracle-core"
-version = "0.3.0"
+version = "0.6.0"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -63,9 +63,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "uvicorn", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/65/da/55b5f408e52d8dfc44cc7a32c89f222947edcd003e87d5aa275e94805d1d/aimarket_oracle_core-0.3.0.tar.gz", hash = "sha256:1dd911401fc2b22c5098308692f5bd8c6cd072f3617c2513679c0fc8cb920343", size = 36707, upload-time = "2026-07-30T21:14:32.114Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/78/e8/e733a867fef8537c0c5c6da7ace323788a750ffc50a1a34ffe282a06d0d5/aimarket_oracle_core-0.6.0.tar.gz", hash = "sha256:1bd294252e416a1d8d40c1eed202a4bf856a7c7adaaf4e351598f3fe2e0e7d86", size = 88938, upload-time = "2026-10-23T20:29:00.965Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/52/17/f5d39fa0b01c9f9410ae23169e66707eccad1d0c92ec19b1c0d59336be26/aimarket_oracle_core-0.3.0-py3-none-any.whl", hash = "sha256:451aa8a045f57c7d70118cbfb743bddeda7afc4d68acfa408f00f42fb7af879d", size = 27562, upload-time = "2026-07-30T21:14:31.181Z" },
+    { url = "https://files.pythonhosted.org/packages/48/fc/ee172bac2dbae2ac006a71c563e8d853a120067bcc7d34e2c9b943ff6263/aimarket_oracle_core-0.6.0-py3-none-any.whl", hash = "sha256:19aad9c38b7f8dbd6c22fc64edae65d97ee7892f57533c83571a22c64fd1012c", size = 50671, upload-time = "2026-10-23T20:28:59.488Z" },
 ]
 
 [[package]]

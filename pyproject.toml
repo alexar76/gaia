@@ -8,12 +8,16 @@ name = "aimarket-gaia-gateway"
 # Bumped because the tree diverged from the published 0.1.2 wheel: `pip install
 # aimarket-gaia-gateway==0.1.2` served code this tree had already moved past, at the same version
 # string, so every fix in it was unpublishable and unreachable.
-version = "0.2.1"
+# 0.2.2: 0.2.0 and 0.2.1 on PyPI import oracle_core.storage and signing.has_small_order, which the core gained
+# after 0.4.0, yet asked for aimarket-oracle-core>=0.2, so `pip install aimarket-gaia-gateway` resolved 0.4.0 and
+# failed on import (found 2026-10-23).
+version = "0.2.2"
 description = "GAIA — physical-world oracle gateway: virtual IoT devices sold as signed, verifiable AIMarket capabilities"
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "aimarket-oracle-core>=0.2",
+    # storage (capabilities), has_small_order (payer identity), the price gate and the call log: core 0.6.
+    "aimarket-oracle-core>=0.6",
     "httpx>=0.27.0",
     "h5py>=3.10",
     "tifffile>=2024.2",
