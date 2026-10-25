@@ -30,12 +30,16 @@ PQ-signed document (fail-closed), so signers must never get ahead of verifiers.
 from __future__ import annotations
 
 import base64
-import contextlib
 import hashlib
 import json
 import os
 from pathlib import Path
 from typing import Any
+
+from ._signing_key_storage import (
+    compromised_public_key, load_or_create_ed25519_keypair,
+    load_or_create_mldsa_keypair, validate_ed25519_keypair,
+)
 
 try:
     from dilithium_py.ml_dsa import ML_DSA_65 as _MLDSA
@@ -102,32 +106,7 @@ class PQCMisconfigured(RuntimeError):
 
 
 def _ensure_keypair(path: Path) -> tuple[bytes, bytes]:
-    from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
-
-    if path.exists():
-        raw = path.read_bytes()
-        if len(raw) == 64:
-            return raw[:32], raw[32:]
-        raise RuntimeError(f"Ed25519 key file {path} is corrupted (size={len(raw)})")
-    path.parent.mkdir(parents=True, exist_ok=True)
-    priv = Ed25519PrivateKey.generate()
-    seed = priv.private_bytes_raw()
-    pub = priv.public_key().public_bytes_raw()
-    try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except FileExistsError:
-        raw = path.read_bytes()
-        if len(raw) == 64:
-            return raw[:32], raw[32:]
-        raise RuntimeError(f"Ed25519 key file {path} is corrupted (size={len(raw)})")
-    try:
-        with os.fdopen(fd, "wb") as stream:
-            stream.write(seed + pub)
-    except Exception:
-        with contextlib.suppress(OSError):
-            path.unlink()
-        raise
-    return seed, pub
+    return load_or_create_ed25519_keypair(path)
 
 
 def _seed_from_env() -> bytes | None:
@@ -140,39 +119,10 @@ def _seed_from_env() -> bytes | None:
     return seed
 
 
-def _read_pq_keypair(path: Path) -> tuple[bytes, bytes]:
-    try:
-        lines = path.read_text().splitlines()
-        if len(lines) != 2 or not all(lines):
-            raise ValueError("expected exactly two non-empty hex lines")
-        pair = (bytes.fromhex(lines[0]), bytes.fromhex(lines[1]))
-        if not all(pair):
-            raise ValueError("empty key")
-    except (OSError, ValueError) as exc:
-        raise RuntimeError(f"ML-DSA key file {path} is corrupted: {exc}") from exc
-    with contextlib.suppress(OSError):
-        os.chmod(path, 0o600)
-    return pair
 
 
 def _load_or_make_pq(path: Path) -> tuple[bytes, bytes]:
-    if path.exists():
-        return _read_pq_keypair(path)
-    pk, sk = _MLDSA.keygen()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    payload = f"{pk.hex()}\n{sk.hex()}\n"
-    try:
-        fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    except FileExistsError:
-        return _read_pq_keypair(path)
-    try:
-        with os.fdopen(fd, "w") as stream:
-            stream.write(payload)
-    except Exception:
-        with contextlib.suppress(OSError):
-            path.unlink()
-        raise
-    return pk, sk
+    return load_or_create_mldsa_keypair(path, _MLDSA)
 
 
 def load_pq_keypair(
@@ -229,6 +179,7 @@ class Signer:
             self._pub_bytes = (
                 Ed25519PrivateKey.from_private_bytes(env_seed).public_key().public_bytes_raw()
             )
+            validate_ed25519_keypair(self._seed + self._pub_bytes)
         else:
             self._seed, self._pub_bytes = _ensure_keypair(self.key_path)
         self._public_key_b64 = base64.b64encode(self._pub_bytes).decode()
@@ -272,7 +223,7 @@ class Signer:
             key = base64.b64decode(public_key_b64)
             signature = base64.b64decode(value_b64)
             # Strict verification: a small-order key or R makes a signature valid for any message.
-            if has_small_order(key) or has_small_order(signature[:32]):
+            if compromised_public_key(key) or has_small_order(key) or has_small_order(signature[:32]):
                 return False
             pub = Ed25519PublicKey.from_public_bytes(key)
             pub.verify(signature, canonical.encode())
