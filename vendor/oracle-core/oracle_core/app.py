@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hmac
+import ipaddress
 import json
 import logging
 import os
@@ -21,7 +22,6 @@ from oracle_core.protocol import OracleSpec, Protocol
 from oracle_core.ratelimit import RateLimiter
 from oracle_core.tiers import FreeTierExceeded, PaidTierPolicy, enforce_free_tier
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -30,23 +30,36 @@ class InvokeRequest(BaseModel):
     input: dict[str, Any] = Field(default_factory=dict)
 
 
-def client_key(request: Request) -> str:
-    """Per-client rate-limit key — the real client IP behind the reverse proxy.
+def peer_is_local_proxy(peer: str) -> bool:
+    """Could the TCP peer be our own reverse proxy (this host or its docker network)?"""
+    try:
+        addr = ipaddress.ip_address((peer or "").split("%")[0])
+    except ValueError:
+        return False
+    return addr.is_loopback or addr.is_private or addr.is_link_local
 
-    Behind nginx the socket peer is always 127.0.0.1, so trust the proxy-set
-    ``X-Real-IP``, and fall back to the RIGHT-most ``X-Forwarded-For`` hop — nginx
-    APPENDS the real peer (``$proxy_add_x_forwarded_for``), so the left-most entry is
-    whatever the caller typed. "Only reachable through nginx" was also not quite true:
-    the container shares a docker network with its neighbours, and a neighbour can
-    call the port directly with any header it likes.
+
+def client_key(request: Request) -> str:
+    """The caller's address: the rate-limit key, and what the paid tier's proxy list is
+    checked against (``tiers.is_paid``).
+
+    Behind nginx the socket peer is 127.0.0.1, so the proxy-set ``X-Real-IP`` is the
+    caller, and failing that the RIGHT-most ``X-Forwarded-For`` hop (nginx APPENDS the
+    real peer; the left-most entry is whatever the caller typed). Those headers count
+    only when the peer is such a proxy: a caller that reached the port another way (a
+    neighbour on the docker network, a published port) sent them itself, and with
+    ORACLE_TRUSTED_PAYMENT_PROXIES set, ``X-Real-IP: <the hub>`` bought the paid tier
+    for free.
     """
-    xri = (request.headers.get("x-real-ip") or "").strip()
-    if xri:
-        return xri
-    hops = [h.strip() for h in (request.headers.get("x-forwarded-for") or "").split(",") if h.strip()]
-    if hops:
-        return hops[-1]
-    return request.client.host if request.client else "*"
+    peer = request.client.host if request.client else ""
+    if peer_is_local_proxy(peer):
+        xri = (request.headers.get("x-real-ip") or "").strip()
+        if xri:
+            return xri
+        hops = [h.strip() for h in (request.headers.get("x-forwarded-for") or "").split(",") if h.strip()]
+        if hops:
+            return hops[-1]
+    return peer or "*"
 
 
 def create_app(

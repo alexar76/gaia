@@ -63,7 +63,8 @@ def _app(tmp_path, store, *, enforce=True, rate=120, monkeypatch=None):
     log = CallLog(store, "prod-log", flush_s=0.05, salt=b"s" * 16)
     app = create_app(_spec(tmp_path), price_gate=PriceGate.from_env(PUBLIC, env),
                      paid_tier=PaidTierPolicy(), call_log=log, invoke_rate_limit=rate)
-    return TestClient(app), log
+    # As our nginx reaches it: from loopback, the caller in X-Real-IP.
+    return TestClient(app, client=("127.0.0.1", 50000)), log
 
 
 def _call(c, cap, inp=None, headers=None, ip="203.0.113.7"):

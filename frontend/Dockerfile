@@ -1,6 +1,7 @@
+# Node security baseline: 22.23.4 (2026-10-21 security release).
 # GAIA frontend — the R3F 3D landing (built static, served by nginx).
 # Build from gaia/frontend/:  docker build -t gaia-frontend .
-FROM node:22-alpine AS build
+FROM node:22.23.4-alpine AS build
 WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install

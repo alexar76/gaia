@@ -318,7 +318,8 @@ def _client(tmp_path, policy=None, **cap_kwargs) -> TestClient:
         _spec(tmp_path, **cap_kwargs),
         paid_tier=policy or PaidTierPolicy.from_env({}),
     )
-    return TestClient(app)
+    # As our nginx reaches it: from loopback, the caller in X-Real-IP.
+    return TestClient(app, client=("127.0.0.1", 50000))
 
 
 def test_over_the_ceiling_answers_402_not_400(tmp_path):
@@ -585,3 +586,32 @@ def test_a_value_that_is_neither_sized_nor_numeric_is_still_left_alone():
 
     enforce_free_tier("x@v1", {"difficulty": 10}, {"difficulty": object()})
     enforce_free_tier("x@v1", {"difficulty": 10}, {"difficulty": None})
+
+
+# ── client_key: the address the paid-tier proxy list is checked against ─────────────
+
+
+def _req(peer, headers):
+    from types import SimpleNamespace
+
+    return SimpleNamespace(client=SimpleNamespace(host=peer), headers=headers)
+
+
+def test_a_direct_caller_cannot_name_the_hub_as_itself():
+    """A neighbour on the docker network (or a published port) sent X-Real-IP itself; with
+    ORACLE_TRUSTED_PAYMENT_PROXIES set to the hub, that bought the paid tier."""
+    from oracle_core.app import client_key
+
+    policy = PaidTierPolicy.from_env({"ORACLE_TRUSTED_PAYMENT_PROXIES": "10.9.9.9"})
+    forged = {"x-real-ip": "10.9.9.9", "x-forwarded-for": "10.9.9.9", "x-payment-channel": "ch"}
+    key = client_key(_req("93.184.216.34", forged))
+    assert key == "93.184.216.34"
+    assert not policy.is_paid(forged, key)
+
+
+def test_behind_our_proxy_the_header_is_the_caller():
+    from oracle_core.app import client_key
+
+    assert client_key(_req("127.0.0.1", {"x-real-ip": "10.9.9.9"})) == "10.9.9.9"
+    assert client_key(_req("172.18.0.1", {"x-forwarded-for": "1.2.3.4, 10.9.9.9"})) == "10.9.9.9"
+    assert client_key(_req("127.0.0.1", {})) == "127.0.0.1"
