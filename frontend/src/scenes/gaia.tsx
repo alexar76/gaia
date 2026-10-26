@@ -515,7 +515,7 @@ export default function Scene() {
       {connectors.map((seg, i) => (
         <Line
           key={i}
-          ref={(el) => (lineRefs.current[i] = el)}
+          ref={(el) => { lineRefs.current[i] = el; }}
           points={seg}
           color={i === 2 ? "#f59e0b" : i === 3 ? "#c084fc" : "#6ee7ff"}
           lineWidth={1}
@@ -528,10 +528,10 @@ export default function Scene() {
       {/* ===================== WEATHER STATIONS (ws-01, ws-02) ===================== */}
       {[WS0, WS1].map((p, s) => (
         <group key={s}>
-          <mesh ref={(el) => (wsNodeRefs.current[s] = el)} position={p}>
+          <mesh ref={(el) => { wsNodeRefs.current[s] = el; }} position={p}>
             <icosahedronGeometry args={[1, 3]} />
             <meshStandardMaterial
-              ref={(el) => (wsMatRefs.current[s] = el)}
+              ref={(el) => { wsMatRefs.current[s] = el; }}
               color={CYAN}
               emissive={CYAN}
               emissiveIntensity={1.9}
@@ -541,7 +541,7 @@ export default function Scene() {
             />
           </mesh>
           {/* pressure ring */}
-          <mesh ref={(el) => (wsRingRefs.current[s] = el)} position={p}>
+          <mesh ref={(el) => { wsRingRefs.current[s] = el; }} position={p}>
             <torusGeometry args={[1, 0.02, 8, 80]} />
             <meshBasicMaterial
               color={INDIGO}

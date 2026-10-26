@@ -93,7 +93,8 @@ Ceilings and budgets are published in the manifest, so a buyer reads them before
 spending a call to discover them. Who may exceed a ceiling is a deployment
 question, not a code one — `ORACLE_PAID_TIER_SECRET` or
 `ORACLE_TRUSTED_PAYMENT_PROXIES`, both unset by default, which means nothing is
-ever lifted until an operator says so. Full rationale and the measured numbers:
+ever lifted until an operator says so. A loopback caller is never a payment proxy:
+behind a proxy that passes no `X-Real-IP` every caller would be 127.0.0.1. Full rationale and the measured numbers:
 `oracle_core/tiers.py` and `docs/free-and-paid-tiers.md` in the monorepo.
 
 ## Price gate

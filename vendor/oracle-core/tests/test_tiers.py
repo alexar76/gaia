@@ -171,6 +171,19 @@ def test_trusted_proxy_accepts_ipv6():
     assert p.is_paid({"X-Payment-Channel": "c"}, "2001:dba::1") is False
 
 
+def test_a_loopback_caller_is_never_the_payment_proxy():
+    """Behind nginx's default proxy_pass (no X-Real-IP) every caller arrives as 127.0.0.1,
+    so a loopback entry would sell the paid tier to anyone who sends a channel header."""
+    for entry in ("127.0.0.1", "127.0.0.0/8", "::1", "0.0.0.0/0, ::/0"):
+        p = PaidTierPolicy.from_env({"ORACLE_TRUSTED_PAYMENT_PROXIES": entry})
+        for caller in ("127.0.0.1", "127.0.0.9", "::1", "::ffff:127.0.0.1"):
+            assert p.is_paid({"X-Payment-Channel": "c"}, caller) is False, (entry, caller)
+    p = PaidTierPolicy.from_env({"ORACLE_TRUSTED_PAYMENT_PROXIES": "127.0.0.1"})
+    assert p.is_paid({"X-AIMarket-Paid-Tier": "x"}, "127.0.0.1") is False
+    p = PaidTierPolicy.from_env({"ORACLE_PAID_TIER_SECRET": "s3cret"})
+    assert p.is_paid({"X-AIMarket-Paid-Tier": "s3cret"}, "127.0.0.1") is True
+
+
 def test_malformed_proxy_entry_neither_widens_nor_breaks():
     """A typo in the env must not silently trust everyone, and must not stop the good
     entries beside it from working."""

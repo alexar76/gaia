@@ -61,7 +61,9 @@ only to a caller the operator has explicitly nominated, by one of two means:
     ``X-Payment-Channel`` is treated as paid, on the grounds that the hub took a
     hold before forwarding it. This trusts the reverse proxy to set ``X-Real-IP``
     (the same trust the rate limiter already places — see ``app.client_key``);
-    operators who cannot guarantee that should use the secret instead.
+    operators who cannot guarantee that should use the secret instead. A loopback
+    address never counts, whatever the list says: every process on the machine
+    shares it, a reverse proxy that passes no client address included.
 
 Neither set is the default, and it means *no call is ever lifted*: the free
 ceiling applies to everybody, including the hub. That is the intended default for
@@ -203,6 +205,14 @@ def _ip_allowed(client_ip: str, allowed: Iterable[str]) -> bool:
     except ValueError:
         # "*" from the rate-limit fallback, or a hostname — not an address we can
         # place inside a network, so it is not trusted.
+        return False
+    if isinstance(ip, ipaddress.IPv6Address) and ip.ipv4_mapped:
+        ip = ip.ipv4_mapped
+    if ip.is_loopback:
+        # Every process on this machine shares a loopback address, a reverse proxy too:
+        # nginx's default proxy_pass sends no X-Real-IP, so every caller it relays would
+        # arrive as 127.0.0.1 and, with a payment channel header, as the hub. A hub on the
+        # same machine sends ORACLE_PAID_TIER_SECRET instead.
         return False
     for entry in allowed:
         try:
