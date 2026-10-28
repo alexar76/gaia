@@ -622,9 +622,48 @@ def test_a_direct_caller_cannot_name_the_hub_as_itself():
     assert not policy.is_paid(forged, key)
 
 
-def test_behind_our_proxy_the_header_is_the_caller():
+def test_behind_our_proxy_the_header_is_the_caller(monkeypatch):
     from oracle_core.app import client_key
 
+    monkeypatch.delenv("ORACLE_TRUSTED_PROXIES", raising=False)
     assert client_key(_req("127.0.0.1", {"x-real-ip": "10.9.9.9"})) == "10.9.9.9"
-    assert client_key(_req("172.18.0.1", {"x-forwarded-for": "1.2.3.4, 10.9.9.9"})) == "10.9.9.9"
     assert client_key(_req("127.0.0.1", {})) == "127.0.0.1"
+    # A published port: the host's nginx reaches the container through the docker gateway, which
+    # the operator names (Vulnetix GCVE-110-VULN-PYPI-2026-000637).
+    monkeypatch.setenv("ORACLE_TRUSTED_PROXIES", "127.0.0.1/32,::1/128,172.18.0.1")
+    assert client_key(_req("172.18.0.1", {"x-forwarded-for": "1.2.3.4, 10.9.9.9"})) == "10.9.9.9"
+
+
+def test_a_docker_neighbour_cannot_name_itself(monkeypatch):
+    from oracle_core.app import client_key
+
+    monkeypatch.setenv("ORACLE_TRUSTED_PROXIES", "127.0.0.1/32,::1/128,172.18.0.1")
+    forged = {"x-real-ip": "10.9.9.9", "x-forwarded-for": "10.9.9.9"}
+    assert client_key(_req("172.18.0.7", forged)) == "172.18.0.7"
+
+
+def test_trusted_proxies_are_loopback_unless_named(monkeypatch, tmp_path):
+    # Vulnetix GCVE-110-VULN-PYPI-2026-000637: X-Real-IP / X-Forwarded-For were taken from any
+    # private peer, so a neighbour on the same docker network or LAN named its own address.
+    import ipaddress
+    import sys
+    import oracle_core.app as trust
+
+    monkeypatch.delenv("ORACLE_TRUSTED_PROXIES", raising=False)
+    assert trust._peer_is_trusted_proxy("127.0.0.1") and trust._peer_is_trusted_proxy("::1")
+    for neighbour in ("172.18.0.7", "10.0.0.5", "192.168.1.20", "fe80::1", "not-an-address", ""):
+        assert not trust._peer_is_trusted_proxy(neighbour), neighbour
+    monkeypatch.setenv("ORACLE_TRUSTED_PROXIES", "10.1.0.0/16, 172.18.0.9")
+    assert trust._peer_is_trusted_proxy("10.1.2.3") and trust._peer_is_trusted_proxy("172.18.0.9")
+    assert not trust._peer_is_trusted_proxy("127.0.0.1")  # the list replaces the default
+    route = tmp_path / "route"
+    gateway_hex = "010012AC" if sys.byteorder == "little" else "AC120001"  # 172.18.0.1
+    route.write_text("Iface\tDestination\tGateway\tFlags\n"
+                     "eth0\t00000000\t" + gateway_hex + "\t0003\n")
+    monkeypatch.setattr(trust, "_PROC_NET_ROUTE", str(route))
+    monkeypatch.setenv("ORACLE_TRUSTED_PROXIES", "gateway")
+    assert trust._peer_is_trusted_proxy("172.18.0.1") and not trust._peer_is_trusted_proxy("172.18.0.2")
+    named = {"frontend": (ipaddress.ip_address("172.18.0.5"),)}
+    monkeypatch.setattr(trust, "_proxy_name_addresses", lambda name: named.get(name, ()))
+    monkeypatch.setenv("ORACLE_TRUSTED_PROXIES", "127.0.0.1, frontend")
+    assert trust._peer_is_trusted_proxy("172.18.0.5") and not trust._peer_is_trusted_proxy("172.18.0.6")

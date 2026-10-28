@@ -20,7 +20,7 @@ name = "aimarket-oracle-core"
 # no ORACLE_TRUSTED_HUBS and no ORACLE_PRICE_GATE it is off and behaviour is exactly 0.4.0's.
 # 0.6.0: `oracle_core.calls` (the call log, /ops/v1/*) and `oracle_core.storage` are new, and
 # `create_app` gained `call_log`. Without ORACLE_CALLS=1 nothing is written: 0.5.0's behaviour.
-version = "0.6.2"
+version = "0.6.3"
 description = "Shared AIMarket v2 infrastructure for the oracle family"
 readme = "README.md"
 license = "Apache-2.0"

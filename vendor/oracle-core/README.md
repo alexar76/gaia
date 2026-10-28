@@ -97,6 +97,12 @@ ever lifted until an operator says so. A loopback caller is never a payment prox
 behind a proxy that passes no `X-Real-IP` every caller would be 127.0.0.1. Full rationale and the measured numbers:
 `oracle_core/tiers.py` and `docs/free-and-paid-tiers.md` in the monorepo.
 
+The rate-limit key, and what the paid tier's proxy list is checked against, is the caller's
+address: `X-Real-IP`, else the right-most `X-Forwarded-For` hop, but only when the TCP peer is in
+`ORACLE_TRUSTED_PROXIES` (addresses, CIDRs, host names, `gateway` for the container's default route;
+loopback by default). Any other peer is keyed on itself: trusting every private address let a
+neighbour on the same docker network name its own (since 0.6.3).
+
 ## Price gate
 
 A price in the manifest is a promise only if something enforces it. This core takes no
