@@ -142,6 +142,9 @@ services:
       # only a call a hub in ORACLE_TRUSTED_HUBS ("url=ed25519 key,…") signed, or 402. Empty
       # leaves it off, as before. ORACLE_PRICE_GATE=report logs what it would refuse first.
       ORACLE_TRUSTED_HUBS: ${ORACLE_TRUSTED_HUBS:-}
+      # Whose X-Real-IP / X-Forwarded-For count: the host's nginx, which reaches the published port
+      # through the docker gateway. Not every private address (Vulnetix GCVE-110-VULN-PYPI-2026-000637).
+      ORACLE_TRUSTED_PROXIES: ${ORACLE_TRUSTED_PROXIES:-127.0.0.1/32,::1/128,gateway}
       ORACLE_PRICE_GATE: ${ORACLE_PRICE_GATE:-}
       ORACLE_HUB_AUDIENCES: ${ORACLE_HUB_AUDIENCES:-}
       # The operator's own direct reader (ATLAS) is nominated with this; it sends it as
