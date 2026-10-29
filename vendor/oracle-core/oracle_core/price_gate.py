@@ -4,7 +4,7 @@ Every provider on this core published a price and served every caller for it. Th
 holds and captures that price for a peer it sells for (``AIMARKET_SELLS_FOR``), but the
 hub's 402 was the only door, and the provider's own URL is public. Measured on
 2026-10-16: a plain ``POST https://iot.modelmarket.dev/ai-market/v2/invoke`` for
-``gaia.power.window@v1`` and the same against EMPORION for ``emporion.vat.check@v1``
+``gaia.power.window@v1`` and the same against SYMMARTYS for ``symmartys.vat.check@v1``
 ($0.002 each) answered ``ok: true`` with the full output and no payment, while the
 same calls through https://modelmarket.dev answered 402 at the catalogue price.
 

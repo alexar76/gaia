@@ -125,7 +125,7 @@ scrape_configs:
 
 | Variable | Meaning |
 |---|---|
-| `ORACLE_CALLS` | `1` keeps the log. Off by default in the library, so a test suite or an embedding application gets no files and no thread it did not ask for. Our GAIA and EMPORION images set it |
+| `ORACLE_CALLS` | `1` keeps the log. Off by default in the library, so a test suite or an embedding application gets no files and no thread it did not ask for. Our GAIA and SYMMARTYS images set it |
 | `ORACLE_DATA_DIR` | where the SQLite file and the salt live (`/data` in our images) |
 | `ORACLE_DATABASE_URL` | Postgres instead of SQLite |
 | `ORACLE_CALLS_RETENTION_DAYS` | days to keep rows (90) |

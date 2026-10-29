@@ -115,7 +115,7 @@ scrape_configs:
 
 | 变量 | 含义 |
 |---|---|
-| `ORACLE_CALLS` | `1` 表示保留日志。库中默认关闭，这样测试套件或嵌入它的应用不会得到它们没要求的文件和线程。我们的 GAIA 和 EMPORION 镜像会开启它 |
+| `ORACLE_CALLS` | `1` 表示保留日志。库中默认关闭，这样测试套件或嵌入它的应用不会得到它们没要求的文件和线程。我们的 GAIA 和 SYMMARTYS 镜像会开启它 |
 | `ORACLE_DATA_DIR` | SQLite 文件和盐所在的位置（我们的镜像中为 `/data`） |
 | `ORACLE_DATABASE_URL` | 用 Postgres 代替 SQLite |
 | `ORACLE_CALLS_RETENTION_DAYS` | 行的保存期限，单位为天（90） |

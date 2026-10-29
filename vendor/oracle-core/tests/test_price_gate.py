@@ -1,6 +1,6 @@
 """The price gate: a priced capability answers a call a trusted hub signed, or 402.
 
-Found on 2026-10-16: GAIA and EMPORION served $0.002 capabilities to an unpaid direct
+Found on 2026-10-16: GAIA and SYMMARTYS served $0.002 capabilities to an unpaid direct
 POST while the hub that sells them answered 402 for the same call. See
 oracle_core/price_gate.py for the wire format and the configuration.
 """

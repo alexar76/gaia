@@ -127,7 +127,7 @@ scrape_configs:
 
 | Variable | Significado |
 |---|---|
-| `ORACLE_CALLS` | `1` mantiene el registro. Desactivado por defecto en la biblioteca, para que una batería de pruebas o una aplicación que la integre no reciba archivos ni hilos que no pidió. Nuestras imágenes de GAIA y EMPORION lo activan |
+| `ORACLE_CALLS` | `1` mantiene el registro. Desactivado por defecto en la biblioteca, para que una batería de pruebas o una aplicación que la integre no reciba archivos ni hilos que no pidió. Nuestras imágenes de GAIA y SYMMARTYS lo activan |
 | `ORACLE_DATA_DIR` | dónde viven el archivo SQLite y la sal (`/data` en nuestras imágenes) |
 | `ORACLE_DATABASE_URL` | Postgres en lugar de SQLite |
 | `ORACLE_CALLS_RETENTION_DAYS` | plazo de conservación de las filas, en días (90) |

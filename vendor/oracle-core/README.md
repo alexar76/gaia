@@ -108,7 +108,7 @@ neighbour on the same docker network name its own (since 0.6.3).
 A price in the manifest is a promise only if something enforces it. This core takes no
 payment itself; the hub that sells your capabilities does. But your invoke URL is
 public, and until 0.5.0 a caller who skipped the hub got every priced capability for
-free (seen on GAIA and EMPORION, 2026-10-16).
+free (seen on GAIA and SYMMARTYS, 2026-10-16).
 
 With the gate on, a capability priced above zero is served only to:
 

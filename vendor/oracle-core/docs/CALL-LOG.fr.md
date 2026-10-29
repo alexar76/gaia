@@ -128,7 +128,7 @@ scrape_configs:
 
 | Variable | Sens |
 |---|---|
-| `ORACLE_CALLS` | `1` tient le journal. Désactivé par défaut dans la bibliothèque, pour qu'une suite de tests ou une application qui l'embarque ne reçoive ni fichier ni fil qu'elle n'a pas demandés. Nos images GAIA et EMPORION l'activent |
+| `ORACLE_CALLS` | `1` tient le journal. Désactivé par défaut dans la bibliothèque, pour qu'une suite de tests ou une application qui l'embarque ne reçoive ni fichier ni fil qu'elle n'a pas demandés. Nos images GAIA et SYMMARTYS l'activent |
 | `ORACLE_DATA_DIR` | où se trouvent le fichier SQLite et le sel (`/data` dans nos images) |
 | `ORACLE_DATABASE_URL` | Postgres au lieu de SQLite |
 | `ORACLE_CALLS_RETENTION_DAYS` | durée de conservation des lignes, en jours (90) |
