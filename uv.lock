@@ -54,7 +54,7 @@ provides-extras = ["mqtt", "dev"]
 
 [[package]]
 name = "aimarket-oracle-core"
-version = "0.6.0"
+version = "0.6.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "cryptography" },
@@ -63,9 +63,9 @@ dependencies = [
     { name = "pydantic" },
     { name = "uvicorn", extra = ["standard"] },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/78/e8/e733a867fef8537c0c5c6da7ace323788a750ffc50a1a34ffe282a06d0d5/aimarket_oracle_core-0.6.0.tar.gz", hash = "sha256:1bd294252e416a1d8d40c1eed202a4bf856a7c7adaaf4e351598f3fe2e0e7d86", size = 88938, upload-time = "2026-10-23T20:29:00.965Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/2a/ec/ef21949e3f577e2895696bca7384c7ef6cbc9bcf59d414e7925c72418baf/aimarket_oracle_core-0.6.3.tar.gz", hash = "sha256:9406e60513915690eebc017751ebc8a1462c8fe77c53082bb502650e11c50ac7", size = 93839, upload-time = "2026-10-28T07:54:43.589Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/48/fc/ee172bac2dbae2ac006a71c563e8d853a120067bcc7d34e2c9b943ff6263/aimarket_oracle_core-0.6.0-py3-none-any.whl", hash = "sha256:19aad9c38b7f8dbd6c22fc64edae65d97ee7892f57533c83571a22c64fd1012c", size = 50671, upload-time = "2026-10-23T20:28:59.488Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/5a/931411bcc414ee01246de30b3c4266ed184578033c9df29bdcd2db48362b/aimarket_oracle_core-0.6.3-py3-none-any.whl", hash = "sha256:17aa02dd2706354847e091d862a7682e502c9dff0ab58a4778607aaa07d68c49", size = 54777, upload-time = "2026-10-28T07:54:42.353Z" },
 ]
 
 [[package]]
@@ -224,9 +224,9 @@ wheels = [
 name = "certifi"
 version = "2026.10.19"
 source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/a6/bd/1436c50cc46699de0230fbaacc1d1de7bfec413176099949e9d5112e88f2/certifi-2026.10.19.tar.gz", hash = "sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae", size = 137598, upload-time = "2026-10-20T02:24:16.604828Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/a6/bd/1436c50cc46699de0230fbaacc1d1de7bfec413176099949e9d5112e88f2/certifi-2026.10.19.tar.gz", hash = "sha256:035c1e85572b141bf1c3a3eff0e33a8eb74917522f2559075ff8d2fea780a1ae", size = 137598, upload-time = "2026-10-20T02:24:16.604Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/c4/51/29046e48f693c54e5b7412216d447a1d8362c9653148d98c02cdf65fa733/certifi-2026.10.19-py3-none-any.whl", hash = "sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b", size = 136464, upload-time = "2026-10-20T02:24:15.072385Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/51/29046e48f693c54e5b7412216d447a1d8362c9653148d98c02cdf65fa733/certifi-2026.10.19-py3-none-any.whl", hash = "sha256:42d35340cc5b9ba78e818ddbff0c5b1c2b779de448a340fd1b989f5fa8670e1b", size = 136464, upload-time = "2026-10-20T02:24:15.072Z" },
 ]
 
 [[package]]
