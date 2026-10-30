@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.4] - 2026-10-29
+
+### Changed
+
+- The `price_gate` module docstring names SYMMARTYS (`symmartys.vat.check@v1`), formerly EMPORION. No behaviour change.
+
 ## [0.6.3] - 2026-10-28
 
 ### Security

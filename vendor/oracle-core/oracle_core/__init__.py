@@ -49,4 +49,4 @@ __all__ = [
 #: against, and there was no way to catch a bump made in one place and not the other. That is
 #: not hypothetical: aimarket-agent shipped 2.1.2 declaring __version__ = "2.1.1", which is why
 #: it has a self-consistency test and this now does too.
-__version__ = "0.6.3"
+__version__ = "0.6.4"
