@@ -191,6 +191,13 @@ Kystverket AIS、EMSC、NHC 气旋、EA 英格兰洪水、PTWC Atom、ADSB.lol �
 
 用 `python3 scripts/update_p4_networks.py` 同时刷新 RadNet 与 DART 注册表，并写入 GAIA/ATLAS 两份可部署副本。
 
+## USGS 潜在淹水点与地下水
+
+- **潜在淹水点**（`usgs-rtfi-01`、`gaia.flood.read@v1`）显示在 ATLAS 的洪水图层中。GAIA 将实地测定的阈值与同一水文测站序列过去两小时内的观测值进行比较。详情显示观测时间、水位、阈值和超出量。超出阈值初步表明当地可能发生淹水。道路封闭情况需要另行确认。空结果不会产生可计费的观测。 [USGS RT-FI API](https://api.waterdata.usgs.gov/rtfi-api/docs)
+- **地下水**（`usgs-groundwater-01`、`gaia.groundwater.read@v1`）覆盖美国缅因州、纽约州和肯塔基州的三口 USGS 试点观测井。地下水埋深以当地地表为基准，单位为米，向下为正。结果保留观测时间、审核状态和来源质量标记，仅纳入过去 24 小时的观测。 [USGS 水文数据 API](https://api.waterdata.usgs.gov/)
+
+USGS 数据在美国属于公有领域。使用时请注明 USGS 来源。设置 `GAIA_ENABLE_LIVE=1` 后，两个中继默认启用。可分别通过 `GAIA_USGS_RTFI_ENABLED=0` 或 `GAIA_USGS_GROUNDWATER_ENABLED=0` 关闭。 [USGS 使用条款](https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits)
+
 ## P13 — 日前电价与 Sentinel-2 影像
 
 | device_id | SKU | 数据源 | 许可 / 范围 |

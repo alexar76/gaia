@@ -763,6 +763,20 @@ def build_live_fleet(clock: SimClock, key_dir: str = "data/devices") -> Fleet:
     if n_p4:
         log.info("Registered %s P4 environmental LIVE relay(s)", n_p4)
 
+    if _env("GAIA_USGS_GROUNDWATER_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_groundwater import UsgsGroundwater
+
+        fleet.add(UsgsGroundwater(
+            "usgs-groundwater-01", clock, site="live-usgs-groundwater", key_dir=key_dir,
+        ))
+
+    if _env("GAIA_HUBEAU_GROUNDWATER_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_hubeau_groundwater import HubEauGroundwater
+
+        fleet.add(HubEauGroundwater(
+            "hubeau-groundwater-01", clock, site="live-hubeau-groundwater", key_dir=key_dir,
+        ))
+
     from gaia.devices.live_p5 import register_p5_relays
 
     n_p5 = register_p5_relays(fleet, clock, key_dir=key_dir)

@@ -96,6 +96,9 @@ PHYSICS: dict[str, FieldPhysics] = {
     "discharge_m3s": FieldPhysics(0.0, 200_000.0, 500.0, None, 0.1, z_check=False),
     # USGS gage datum is typically < 50 m; ECCC hydrometric LEVEL can be geodetic.
     "gage_height_m": FieldPhysics(-5.0, 200.0, 0.8, 0.25, 0.02, stuck_check=True),
+    "flood_gage_level_m": FieldPhysics(-500.0, 5000.0, 5500.0, None, 0.0001, z_check=False),
+    "flood_threshold_m": FieldPhysics(-500.0, 5000.0, 5500.0, None, 0.0001, z_check=False),
+    "flood_exceedance_m": FieldPhysics(0.0, 500.0, 500.0, None, 0.0001, z_check=False),
     "wave_height_m": FieldPhysics(0.0, 30.0, 2.0, None, 0.05, z_check=False),
     "sst_c": FieldPhysics(-2.0, 40.0, 1.5, 0.5, 0.1, stuck_check=True),
     # Free-to-commercialize event / feeder series (not OU noise).
@@ -132,6 +135,9 @@ PHYSICS: dict[str, FieldPhysics] = {
     "ph": FieldPhysics(0.0, 14.0, 1.0, 0.5, 0.05, stuck_check=True),
     "dissolved_oxygen_mg_l": FieldPhysics(0.0, 25.0, 2.0, 1.0, 0.05, stuck_check=True),
     "specific_conductance_us_cm": FieldPhysics(0.0, 100_000.0, 500.0, None, 1.0, z_check=False),
+    "groundwater_depth_m": FieldPhysics(-500.0, 12_000.0, 12_500.0, None, 0.01, z_check=False),
+    "groundwater_reference_depth_m": FieldPhysics(-500.0, 12_000.0, 12_500.0, None, 0.01, z_check=False),
+    "groundwater_level_ngf_m": FieldPhysics(-500.0, 9_000.0, 9_500.0, None, 0.01, z_check=False),
     "water_column_height_m": FieldPhysics(0.0, 12_000.0, 5.0, None, 0.01, z_check=False),
     "measurement_type": FieldPhysics(1.0, 3.0, 2.0, None, 1.0, z_check=False),
     "precipitation_mm_h": FieldPhysics(0.0, 500.0, 100.0, None, 0.1, z_check=False),

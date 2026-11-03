@@ -191,6 +191,13 @@ Un punto ATLAS corresponde a una coordenada de lectura. Las redes publican todas
 
 Los registros RadNet y DART se actualizan juntos con `python3 scripts/update_p4_networks.py`, que escribe las copias de despliegue de GAIA y ATLAS.
 
+## Puntos de posible inundación y aguas subterráneas del USGS
+
+- **Puntos de posible inundación** (`usgs-rtfi-01`, `gaia.flood.read@v1`) aparecen en la capa de inundaciones de ATLAS. GAIA compara el umbral medido en campo con una lectura de la misma serie de la estación hidrométrica tomada en las últimas dos horas. La ficha muestra la hora de observación, el nivel, el umbral y cuánto se supera. El resultado es un indicio provisional de posible inundación. Los cierres de carreteras requieren confirmación independiente. Una respuesta vacía no genera una observación facturable. [API USGS RT-FI](https://api.waterdata.usgs.gov/rtfi-api/docs)
+- **Aguas subterráneas** (`usgs-groundwater-01`, `gaia.groundwater.read@v1`) cubre tres pozos piloto del USGS en Maine, Nueva York y Kentucky. La profundidad del agua se expresa en metros respecto a la superficie local del terreno, con valores positivos hacia abajo. Se conservan la hora de observación, el estado de aprobación y el indicador de calidad de origen. Se admiten lecturas de las últimas 24 horas. [USGS Water Data API](https://api.waterdata.usgs.gov/)
+
+Los datos del USGS son de dominio público en EE. UU. Atribuya los datos al USGS. Ambos relés están habilitados por defecto cuando `GAIA_ENABLE_LIVE=1`. Para deshabilitarlos, use `GAIA_USGS_RTFI_ENABLED=0` o `GAIA_USGS_GROUNDWATER_ENABLED=0`, respectivamente. [Condiciones del USGS](https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits)
+
 ## P13 — precios eléctricos del día siguiente e imágenes Sentinel-2
 
 | device_id | SKU | Fuente | Licencia / alcance |

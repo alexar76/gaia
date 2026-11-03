@@ -174,7 +174,17 @@ it with separately cited interference reports, but every reading and receipt kee
 
 ## P1 — verified licences only
 
-Copernicus **GloFAS operational WMS requires registration**. We do **not** scrape it. Flood layer is NWS CAP flood/flash-flood alerts (U.S. PD) — USGS WaterWatch `/webservices/realtime` JSON was retired (HTTP 301, 2026-08).
+USGS Real-Time Flood Impacts (`usgs-rtfi-01`, `gaia.flood.read@v1`) adds
+surveyed reference points to the ATLAS Flood layer. The relay checks each
+upstream exceedance against a fresh USGS reading from the exact gage series
+and publishes the gage observation time, level, surveyed threshold and
+difference. The freshness window is two hours. Exceedances are provisional
+indicators of possible local inundation. Road closures require independent
+confirmation. An empty feed supplies no billable observation.
+[API](https://api.waterdata.usgs.gov/rtfi-api/docs) ·
+[U.S. public domain; cite USGS](https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits)
+
+The Flood layer also includes NWS CAP flood and flash-flood alerts (U.S. public domain). Copernicus GloFAS operational WMS requires registration. USGS retired the WaterWatch `/webservices/realtime` JSON feed in August 2026.
 
 | device_id | SKU | Upstream | License |
 |-----------|-----|----------|---------|
@@ -228,6 +238,7 @@ their zero-coordinate parent.
 |---|---|---|---|
 | Smoke `hms-smoke-01` | `gaia.smoke.read@v1` | Every NOAA HMS polygon with its **full ring and holes**, stable `polygon_id`, geometry digest and bbox; the centroid is only the ATLAS map anchor. Qualitative light/medium/heavy, not PM2.5 | U.S. PD; cite NOAA/NESDIS HMS |
 | Water quality `usgs-wq-01` | `gaia.water_quality.read@v1` | Fully paginates fresh latest-continuous observations (48h default, configurable `max_age_hours`) and batch-joins active sites to the official USGS monitoring-locations registry; optional parameter filter/`require_all`; one signed row per station coordinate; per-parameter timestamps, Approved/Provisional and qualifiers retained; stale/unresolved/truncated data fails closed | U.S. PD; cite USGS Water Data for the Nation |
+| Groundwater `usgs-groundwater-01` | `gaia.groundwater.read@v1` | Three USGS pilot wells in Maine, New York and Kentucky. Continuous parameter 72019, converted to meters relative to the local land surface, positive downward. Keeps the observation time, approval status and qualifier. Only observations from the past 24 hours are eligible. | U.S. PD; cite USGS Water Data for the Nation |
 | DART `noaa-dart-01`, `dart-*` | `gaia.dart.read@v1` | All active stations from the official NDBC directory (43 at the checked-in refresh); not a tsunami warning | U.S. PD; cite NOAA/NDBC |
 | Precipitation `imerg-01` | `gaia.precipitation.read@v1` | NASA GPM IMERG Early Run cell at any requested coordinate; exact source cell centre; preliminary; Earthdata token | NASA open data; cite NASA GPM IMERG, no endorsement |
 | Radar `nexrad-status-01` | `gaia.radar.status.read@v1` | One NEXRAD health/status reading per WSR-88D coordinate; not reflectivity | U.S. PD; cite NOAA/NWS ROC |
@@ -503,6 +514,8 @@ Open-Meteo instance <origin>`) — provenance is never implied in this fleet.
 | `GAIA_EARTHDATA_TOKEN` | empty | Enables NASA IMERG downloads (free Earthdata Login token) |
 | `GAIA_CDSE_CLIENT_ID` / `_CLIENT_SECRET` | empty | Enables Copernicus CLMS soil and Sentinel-3 LST |
 | `GAIA_HMS_SMOKE_ENABLED` / `GAIA_USGS_WQ_ENABLED` / `GAIA_DART_ENABLED` | `1` | NOAA smoke, USGS water quality, NOAA DART |
+| `GAIA_USGS_RTFI_ENABLED` | `1` | USGS Real-Time Flood Impacts, with current gage verification |
+| `GAIA_USGS_GROUNDWATER_ENABLED` | `1` | USGS pilot wells with continuous depth-to-water measurements |
 | `GAIA_IMERG_ENABLED` / `GAIA_NEXRAD_STATUS_ENABLED` / `GAIA_CAMS_ENABLED` | `1` | IMERG (only registers with token), NEXRAD status, CAMS |
 | `GAIA_RADNET_ENABLED` / `GAIA_COPERNICUS_SOIL_ENABLED` | `1` | EPA RadNet and credential-gated CLMS SWI |
 | `GAIA_POWER_SOLAR_ENABLED` / `GAIA_NOHRSC_SNOW_ENABLED` | `1` | NASA POWER solar and NOAA NOHRSC snow cells |

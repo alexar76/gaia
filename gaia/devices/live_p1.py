@@ -31,6 +31,7 @@ from gaia.clock import SimClock
 from gaia.devices.base import DeviceOffline
 from gaia.devices.live import LiveDevice, _env, _lat_lon, _num
 from gaia.devices.live_p0 import NwsCapAlerts, geojson_centroid, resolve_wgs84, signed_cluster_read
+from gaia.devices.live_rtfi import UsgsFloodImpacts
 
 _SAFE_VNUM = __import__("re").compile(r"^[0-9]{4,8}$")
 
@@ -666,6 +667,9 @@ def register_p1_relays(fleet: Any, clock: SimClock, *, key_dir: str) -> int:
     n = 0
     if enabled("GAIA_FLOOD_ENABLED", "1"):
         fleet.add(NwsFloodAlerts("nws-flood-01", clock, site="live-flood", key_dir=key_dir))
+        n += 1
+    if enabled("GAIA_USGS_RTFI_ENABLED"):
+        fleet.add(UsgsFloodImpacts("usgs-rtfi-01", clock, site="live-flood-usgs-rtfi", key_dir=key_dir))
         n += 1
     if enabled("GAIA_EFFIS_ENABLED", "1"):
         fleet.add(EffisCurrentFires("effis-01", clock, site="live-effis", key_dir=key_dir))

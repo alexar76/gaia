@@ -143,9 +143,13 @@ class GatewayRuntime:
 # ── Handlers ──────────────────────────────────────────────────────────────────
 
 
-def _read_handler(runtime: GatewayRuntime, default_device: str):
+def _read_handler(
+    runtime: GatewayRuntime, default_device: str, *, allowed_devices: tuple[str, ...] = (),
+):
     def handler(data: dict[str, Any]) -> dict[str, Any]:
         device_id = str(data.get("device_id") or default_device)
+        if allowed_devices and device_id not in allowed_devices:
+            raise ValueError(f"unsupported device for this capability: {device_id}")
         return runtime.read(device_id)  # ValueError (unknown) -> {ok:false}
     return handler
 
@@ -1064,6 +1068,7 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
     from gaia.devices.live_p11 import BafuRiver
     from gaia.devices.live_p12 import GfmFlood, LhmtRiver, OpwRiver
     from gaia.devices.live_p12_flood import VicFlood
+    from gaia.devices.live_rtfi import UsgsFloodImpacts
     from gaia.devices.live_p12_lv import LvgmcRiver
 
     tide_ids = [
@@ -1287,7 +1292,7 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             price_per_call_usd=0.002, p50_latency_ms=200,
         ))
     flood_ids = [
-        d.device_id for d in runtime.fleet.devices() if isinstance(d, (VicFlood, GfmFlood))
+        d.device_id for d in runtime.fleet.devices() if isinstance(d, (VicFlood, GfmFlood, UsgsFloodImpacts))
     ]
     if _has("nws-flood-01") or _has("ea-flood-01") or flood_ids:
         default_flood = (
@@ -1296,11 +1301,12 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
         )
         caps.append(Capability(
             capability_id="gaia.flood.read@v1",
-            description="Live flood warning products: NWS CAP (U.S. PD), UK Environment "
+            description="Live flood products: NWS CAP (U.S. PD), UK Environment "
                         "Agency OGL (England only — not SEPA/NRW), Vigicrues VIC "
                         "vic-*-01 (Etalab OL 2.0; WARNING, not Hub'Eau; empty ≠ all-clear), "
                         "and/or Copernicus GFM gfm-flood-01 (CC BY 4.0; needs "
-                        "GAIA_GFM_TOKEN; not GloFAS WMS). Not an in-situ river gauge. "
+                        "GAIA_GFM_TOKEN; not GloFAS WMS), and USGS RT-FI usgs-rtfi-01 "
+                        "(provisional threshold exceedances at surveyed locations; U.S. PD). "
                         f"Default device_id={default_flood}. Ed25519-attested.",
             handler=_read_handler(runtime, default_flood),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
@@ -1425,6 +1431,21 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
                         "signed row is one station coordinate. device_id=usgs-wq-01.",
             handler=_p4_geo_handler(runtime, "usgs-wq-01"),
             product_id=product, input_schema=_WATER_QUALITY_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=250,
+        ))
+    groundwater_ids = tuple(
+        device_id for device_id in ("usgs-groundwater-01", "hubeau-groundwater-01") if _has(device_id)
+    )
+    if groundwater_ids:
+        caps.append(Capability(
+            capability_id="gaia.groundwater.read@v1",
+            description="Signed pilot well coordinates and observations no more than 24h old. "
+                        "USGS reports depth below local land surface (U.S. public domain). "
+                        "Hub'Eau reports raw depth relative to the measuring reference and water "
+                        "elevation on the NGF datum (Etalab Open Licence 2.0; credit BRGM / Hub'Eau). "
+                        f"Select from {', '.join(groundwater_ids)}; default={groundwater_ids[0]}.",
+            handler=_read_handler(runtime, groundwater_ids[0], allowed_devices=groundwater_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=250,
         ))
     if _has("noaa-dart-01"):

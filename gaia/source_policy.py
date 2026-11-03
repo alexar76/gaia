@@ -179,6 +179,31 @@ APPROVED_SOURCES: dict[str, SourcePolicy] = {
         ("api.waterdata.usgs.gov",),
         licence_url="https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits",
     ),
+    "usgs_groundwater": SourcePolicy(
+        "usgs_groundwater", "USGS Water Data for the Nation continuous groundwater",
+        "U.S. Government public domain",
+        "USGS-produced data may be reused commercially; retain USGS credit and provisional status.",
+        "U.S. Geological Survey Water Data for the Nation",
+        ("api.waterdata.usgs.gov",),
+        licence_url="https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits",
+    ),
+    "usgs_rtfi": SourcePolicy(
+        "usgs_rtfi", "USGS Real-Time Flood Impacts and Water Data for the Nation",
+        "U.S. Government public domain",
+        "Commercial reuse of USGS-produced thresholds and measurements is permitted. "
+        "Attribute USGS and identify exceedances as provisional.",
+        "U.S. Geological Survey Real-Time Flood Impacts / Water Data for the Nation",
+        ("api.waterdata.usgs.gov",),
+        licence_url="https://www.usgs.gov/information-policies-and-instructions/copyrights-and-credits",
+    ),
+    "hubeau_groundwater": SourcePolicy(
+        "hubeau_groundwater", "Hub'Eau / BRGM Piézométrie raw telemetry",
+        "Etalab Open Licence 2.0",
+        "Commercial reuse is permitted; credit BRGM / Hub'Eau and retain the last update date.",
+        "BRGM / Hub'Eau Piézométrie · Licence Ouverte 2.0",
+        ("hubeau.eaufrance.fr",),
+        licence_url="https://assistance.brgm.fr/fr/aide/HubEau",
+    ),
     "noaa_dart": SourcePolicy(
         "noaa_dart", "NOAA/NDBC DART", "U.S. Government public domain",
         "Real-time DART water-column height may be reused commercially; retain NOAA/NDBC attribution.",
