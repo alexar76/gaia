@@ -235,3 +235,16 @@ GAIA 侧没有单独产品界面。
 **重新部署 GAIA** 并等待 Hub federation crawl `iot.modelmarket.dev` 后，读数类能力出现在目录。
 UI 文案：`aimarket-hub/cap-descriptions-i18n.json`（EN · RU · ES · FR · ZH）。
 ATLAS 组合 SKU 在 crawl peer `atlas.modelmarket.dev` 后出现。
+
+## 新增数据源
+
+| 图层或来源 | GAIA | 地图显示内容 | 来源及条款 |
+|---|---|---|---|
+| Hub’Eau 地下水 | `gaia.groundwater.read@v1` · `hubeau-groundwater-01` | 法国八口试点井提供从测量基准点到水面的深度和以 NGF 表示的水面高程。卡片会显示观测时间和每项数值的基准。 | [Etalab Licence Ouverte](https://assistance.brgm.fr/fr/aide/HubEau) |
+| NOAA NWPS 河流水位预报 | `gaia.river.forecast.read@v1` · `nwps-pttp1`, `nwps-rmdv2`, `nwps-vckm6`, `nwps-dlrt2` | 卡片显示未来 72 小时内可用预报点的最高水位、发布时间和峰值时间。水位以该水文站的本地基准为准。 | [NOAA/NWS · U.S. public domain](https://water.noaa.gov/about/api) |
+| 英国环境署验潮站 | `gaia.tide.read@v1` · `ea-tide-e70039`, `ea-tide-e72639`, `ea-tide-e70539`, `ea-tide-e70739`, `ea-tide-e73839` | 英国沿海站点以米为单位提供相对于 Ordnance Datum Newlyn 基准的平均海平面高度（mAOD）。 | [Environment Agency · OGL v3](https://environment.data.gov.uk/flood-monitoring/doc/tidegauge) |
+| Fintraffic 道路事件 | `gaia.road.events.read@v1` · `fintraffic-road-announcements-01`, `fintraffic-roadworks-01` | 芬兰道路通告和施工记录显示受影响路段及源数据中的有效时段。 | [Fintraffic Digitraffic · CC BY 4.0](https://www.digitraffic.fi/en/terms-of-service/) |
+| NOAA G-AIRMET | `gaia.aviation.hazards.read@v1` · `awc-gairmet-01` | 美国航空预报的多边形和线条标注危险类型、发布时间和有效时间。 | [NOAA/NWS Aviation Weather Center · U.S. public domain](https://aviationweather.gov/data/api/) |
+| NDW 道路通告和临时封闭 | `gaia.road.events.read@v1` · `ndw-road-srti-01`, `ndw-road-closures-01` | `road_events` 图层显示荷兰道路安全通告、临时封闭及受影响路段的几何形状。签名快照在发布五分钟后过期。每项交通措施另有自己的有效时段。 | [NDW · CC0 1.0](https://docs.ndw.nu/algemeen/data-gebruiksvoorwaarden/) |
+| FMI 波罗的海测波浮标 | `gaia.marine.read@v1` · `fmi-marine-103976`, `fmi-marine-108126`, `fmi-marine-108499`, `fmi-marine-134220`, `fmi-marine-134221`, `fmi-marine-134246` | `marine` 图层中的六个浮标提供有效波高。卡片也会显示同一时刻测得的谱峰周期、来波方向和水温。时间戳表示波浪采样的开始时间。观测数据两小时后过期。 | [FMI · CC BY 4.0](https://en.ilmatieteenlaitos.fi/download-observations-questions) |
+| USDA NRCS SNOTEL 积雪观测 | `gaia.snow.read@v1` · `snotel-335`, `snotel-415` | `snow` 图层显示科罗拉多州 Berthoud Summit 和 Copper Mountain 两站的每小时积雪深度及雪水当量，单位为厘米。GAIA 只配对同一小时内通过自动质量检查且距今不超过六小时的测量值。 | [USDA NRCS · 美国公有领域](https://catalog.data.gov/dataset/snowpack-telemetry-network-snotel) |

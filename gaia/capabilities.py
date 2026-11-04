@@ -587,7 +587,7 @@ def _gnss_integrity_handler(runtime: GatewayRuntime, default_device: str):
     return handler
 
 
-def _p4_geo_handler(runtime: GatewayRuntime, default_device: str):
+def _p4_geo_handler(runtime: GatewayRuntime, default_device: str, *, fixed_devices: tuple[str, ...] = ()):
     """P4 network/grid reads: fixed device by default, complete bbox on demand."""
 
     def handler(data: dict[str, Any]) -> dict[str, Any]:
@@ -607,6 +607,8 @@ def _p4_geo_handler(runtime: GatewayRuntime, default_device: str):
         device_id = str(raw.get("device_id") or default_device)
         device = runtime.fleet.get(device_id)
         keys = ("west", "south", "east", "north")
+        if device_id in fixed_devices and any(raw.get(k) is not None for k in (*keys, "latitude", "longitude")):
+            raise ValueError(f"{device_id} is a fixed station; select it by device_id alone")
         bbox_fields = [raw.get(k) is not None for k in keys]
         if any(bbox_fields) and not all(bbox_fields):
             raise ValueError("west, south, east and north must be supplied together")
@@ -1069,21 +1071,38 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
     from gaia.devices.live_p12 import GfmFlood, LhmtRiver, OpwRiver
     from gaia.devices.live_p12_flood import VicFlood
     from gaia.devices.live_rtfi import UsgsFloodImpacts
+    from gaia.devices.live_water_ext import EaTideGauge, NwsRiverForecast
     from gaia.devices.live_p12_lv import LvgmcRiver
 
     tide_ids = [
         d.device_id
         for d in runtime.fleet.devices()
-        if isinstance(d, (NOAATideStation, UhslcTide))
+        if isinstance(d, (NOAATideStation, UhslcTide, EaTideGauge))
     ]
     if tide_ids:
         caps.append(Capability(
             capability_id="gaia.tide.read@v1",
             description="Live tide-gauge relay — NOAA CO-OPS (MLLW metres) and/or UHSLC "
-                        f"fast-delivery. Default device_id={tide_ids[0]}. Ed25519-attested.",
+                        "fast-delivery and UK Environment Agency measured 15-minute mean "
+                        f"(mAOD). Default device_id={tide_ids[0]}. Ed25519-attested.",
             handler=_read_handler(runtime, tide_ids[0]),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.001, p50_latency_ms=100,
+        ))
+
+    forecast_ids = tuple(
+        d.device_id for d in runtime.fleet.devices() if isinstance(d, NwsRiverForecast)
+    )
+    if forecast_ids:
+        caps.append(Capability(
+            capability_id="gaia.river.forecast.read@v1",
+            description="NOAA/NWS NWPS official river stage forecast. Peak of available upcoming "
+                        "forecast samples in the next 72 hours, in metres above the local gage "
+                        "datum. Includes issuance and peak valid times. Forecast only. "
+                        f"Default device_id={forecast_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, forecast_ids[0], allowed_devices=forecast_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=300,
         ))
 
     river_ids = [
@@ -1138,17 +1157,24 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=500,
         ))
+    from gaia.devices.live_fmi_marine import FmiMarine
+
     marine_ids = [
         d.device_id
         for d in runtime.fleet.devices()
-        if isinstance(d, (NDBCBuoy, OpenMeteoMarine, CdipWave))
+        if isinstance(d, (NDBCBuoy, OpenMeteoMarine, CdipWave, FmiMarine))
     ]
+    fmi_marine_ids = [d.device_id for d in runtime.fleet.devices() if isinstance(d, FmiMarine)]
     if marine_ids:
+        fmi_description = (
+            f"FMI measured waves and sea temperature (CC BY 4.0; credit FMI): {', '.join(fmi_marine_ids)}. "
+            if fmi_marine_ids else ""
+        )
         caps.append(Capability(
             capability_id="gaia.marine.read@v1",
             description="Live marine relay — wave height (m) from NOAA NDBC, Open-Meteo Marine, "
                         "and/or CDIP ERDDAP West Coast buoys (acknowledge CDIP/Scripps/USACE). "
-                        f"Default device_id={marine_ids[0]}. Ed25519-attested.",
+                        f"{fmi_description}Default device_id={marine_ids[0]}. Ed25519-attested.",
             handler=_read_handler(runtime, marine_ids[0]),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.001, p50_latency_ms=120,
@@ -1389,6 +1415,33 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=300,
         ))
+    finnish_road_ids = ("fintraffic-road-announcements-01", "fintraffic-roadworks-01")
+    dutch_road_ids = ("ndw-road-srti-01", "ndw-road-closures-01")
+    road_event_ids = tuple(device_id for device_id in (*finnish_road_ids, *dutch_road_ids) if _has(device_id))
+    if road_event_ids:
+        providers = []
+        if any(device_id in road_event_ids for device_id in finnish_road_ids):
+            providers.append("Fintraffic Finnish notices and works (CC BY 4.0; credit Fintraffic Digitraffic)")
+        if any(device_id in road_event_ids for device_id in dutch_road_ids):
+            providers.append("NDW Dutch safety notices and closures (CC0 1.0)")
+        caps.append(Capability(
+            capability_id="gaia.road.events.read@v1",
+            description=f"Road notices within published validity, with source geometry. {'; '.join(providers)}. "
+                        f"Select {', '.join(road_event_ids)}. Default device_id={road_event_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, road_event_ids[0], allowed_devices=road_event_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=350,
+        ))
+    if _has("awc-gairmet-01"):
+        caps.append(Capability(
+            capability_id="gaia.aviation.hazards.read@v1",
+            description="NOAA/NWS AWC CONUS G-AIRMET forecast geometry at the next source snapshot "
+                        "time. U.S. public domain. Situational awareness; obtain an official flight briefing. "
+                        "Ed25519-attested.",
+            handler=_read_handler(runtime, "awc-gairmet-01", allowed_devices=("awc-gairmet-01",)),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=300,
+        ))
     if _has("fintraffic-rail-01"):
         caps.append(Capability(
             capability_id="gaia.rail.read@v1",
@@ -1520,14 +1573,23 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=_P4_GEO_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=450,
         ))
-    if _has("snow-rainier"):
+    from gaia.devices.live_snotel import UsdaSnotel
+
+    snotel_ids = tuple(d.device_id for d in runtime.fleet.devices() if isinstance(d, UsdaSnotel))
+    has_snodas = _has("snow-rainier")
+    if has_snodas or snotel_ids:
+        snow_default = "snow-rainier" if has_snodas else snotel_ids[0]
+        snow_sources = []
+        if has_snodas:
+            snow_sources.append("NOAA/NWS NOHRSC assimilated SNODAS snow depth and snow-water "
+                                "equivalent at any requested CONUS coordinate on its exact 1-km model cell.")
+        if snotel_ids:
+            snow_sources.append("USDA NRCS SNOTEL measured hourly depth and snow-water equivalent "
+                                f"at fixed Colorado stations {', '.join(snotel_ids)} (U.S. public domain).")
         caps.append(Capability(
             capability_id="gaia.snow.read@v1",
-            description="NOAA/NWS NOHRSC assimilated SNODAS snow depth and snow-water "
-                        "equivalent. Any requested CONUS coordinate resolves to its exact "
-                        "1-km model cell; not an "
-                        "in-situ gauge. Default device_id=snow-rainier.",
-            handler=_p4_geo_handler(runtime, "snow-rainier"),
+            description=f"{' '.join(snow_sources)} Default device_id={snow_default}.",
+            handler=_p4_geo_handler(runtime, snow_default, fixed_devices=snotel_ids),
             product_id=product, input_schema=_P4_GEO_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=400,
         ))

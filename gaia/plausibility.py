@@ -86,6 +86,10 @@ PHYSICS: dict[str, FieldPhysics] = {
     "scene_class": FieldPhysics(0.0, 11.0, 11.0, None, 1.0, z_check=False),
     "scene_cloud_pct": FieldPhysics(0.0, 100.0, 100.0, None, 1.0, z_check=False),
     "observation_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "forecast_issued_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "forecast_valid_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "forecast_stage_m": FieldPhysics(-31.0, 305.0, 336.0, None, 0.0001, z_check=False),
+    "water_level_maod": FieldPhysics(-20.0, 20.0, 40.0, None, 0.001, z_check=False),
     "observation_age_days": FieldPhysics(0.0, 400.0, 400.0, None, 1.0, z_check=False),
     "magnitude": FieldPhysics(0.0, 10.0, 10.0, None, 0.1, z_check=False, stuck_check=False),
     "depth_km": FieldPhysics(-5.0, 800.0, 50.0, None, 1.0, z_check=False),
@@ -100,6 +104,7 @@ PHYSICS: dict[str, FieldPhysics] = {
     "flood_threshold_m": FieldPhysics(-500.0, 5000.0, 5500.0, None, 0.0001, z_check=False),
     "flood_exceedance_m": FieldPhysics(0.0, 500.0, 500.0, None, 0.0001, z_check=False),
     "wave_height_m": FieldPhysics(0.0, 30.0, 2.0, None, 0.05, z_check=False),
+    "wave_direction_deg": FieldPhysics(0.0, 360.0, 360.0, None, 1.0, z_check=False),
     "sst_c": FieldPhysics(-2.0, 40.0, 1.5, 0.5, 0.1, stuck_check=True),
     # Free-to-commercialize event / feeder series (not OU noise).
     "brightness_k": FieldPhysics(200.0, 600.0, 50.0, None, 1.0, z_check=False, stuck_check=False),
@@ -173,6 +178,7 @@ PHYSICS: dict[str, FieldPhysics] = {
     "pool_elev_m": FieldPhysics(-100.0, 5_000.0, 10.0, None, 0.01, z_check=False),
     "storage_m3": FieldPhysics(0.0, 1e14, 1e8, None, 1.0, z_check=False),
     "uv_index": FieldPhysics(0.0, 30.0, 10.0, None, 0.1, z_check=False),
+    "transport_notice_count": FieldPhysics(0.0, 5_000.0, 5_000.0, None, 1.0, z_check=False),
     "rainfall_mm": FieldPhysics(0.0, 1_000.0, 100.0, None, 0.01, z_check=False),
 }
 

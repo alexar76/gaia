@@ -23,6 +23,7 @@ from gaia.devices._policy import _assert_url_allowed
 from gaia.devices.base import DeviceOffline
 from gaia.devices.live import LiveDevice, _env, _num
 from gaia.devices.live_p0 import signed_cluster_read
+from gaia.devices.live_water_ext import EA_TIDE_GAUGES, NWPS_GAUGES, EaTideGauge, NwsRiverForecast
 from gaia.source_policy import require_approved_source
 
 log = logging.getLogger("gaia.devices.live_p6")
@@ -571,6 +572,16 @@ def register_p6_relays(fleet: Any, clock: SimClock, *, key_dir: str) -> int:
                 device_id, clock, location_code=code, latitude=lat, longitude=lon,
                 site=f"live-river-{device_id}", key_dir=key_dir,
             ))
+            n += 1
+    if enabled("GAIA_EA_TIDE_ENABLED"):
+        for gauge in EA_TIDE_GAUGES:
+            device_id = f"ea-tide-{gauge.lower()}"
+            fleet.add(EaTideGauge(device_id, clock, gauge=gauge, site=device_id, key_dir=key_dir))
+            n += 1
+    if enabled("GAIA_NWPS_FORECAST_ENABLED"):
+        for gauge in NWPS_GAUGES:
+            device_id = f"nwps-{gauge.lower()}"
+            fleet.add(NwsRiverForecast(device_id, clock, gauge=gauge, site=device_id, key_dir=key_dir))
             n += 1
     if enabled("GAIA_USACE_CWMS_ENABLED"):
         for device_id, name, lat, lon, _place in USACE_RESERVOIR_MESH:

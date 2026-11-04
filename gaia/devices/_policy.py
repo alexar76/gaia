@@ -79,6 +79,7 @@ ALLOWED_HOSTS = frozenset({
     # P4 environmental products
     "www.ospo.noaa.gov",
     "api.waterdata.usgs.gov",
+    "api.water.noaa.gov",
     "cmr.earthdata.nasa.gov",
     "data.gesdisc.earthdata.nasa.gov",
     "radnet.epa.gov",
@@ -91,6 +92,8 @@ ALLOWED_HOSTS = frozenset({
     "aviationweather.gov",
     "tie.digitraffic.fi",
     "rata.digitraffic.fi",
+    "opendata.ndw.nu",
+    "wcc.sc.egov.usda.gov",
     "usdmdataservices.unl.edu",
     "droughtmonitor.unl.edu",
     "api.geoshake.org",

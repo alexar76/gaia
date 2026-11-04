@@ -168,6 +168,8 @@ def test_p6_mesh_registration_with_cluster_disables(tmp_path, monkeypatch):
     monkeypatch.setenv("GAIA_USACE_CWMS_ENABLED", "1")
     monkeypatch.setenv("GAIA_EPA_UV_ENABLED", "0")
     monkeypatch.setenv("GAIA_MET_EIREANN_ENABLED", "0")
+    monkeypatch.setenv("GAIA_EA_TIDE_ENABLED", "0")
+    monkeypatch.setenv("GAIA_NWPS_FORECAST_ENABLED", "0")
     fleet = _Fleet()
     count = register_p6_relays(fleet, SimClock(realtime=True), key_dir=str(tmp_path))
     expected = len(EA_HYDROLOGY_MESH) + len(RWS_RIVER_MESH) + len(USACE_RESERVOIR_MESH)

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -35,7 +36,9 @@ def _coordinates(raw: Any, limits: tuple[int, ...]) -> Any:
     lon, lat = _num(raw[0]), _num(raw[1])
     if lon is None or lat is None or not (-180 <= lon <= 180 and -90 <= lat <= 90):
         raise ValueError("invalid coordinate")
-    return [lon, lat]
+    # About one metre of coordinate precision keeps detailed road networks
+    # below Hub response limits while preserving each source path and ring.
+    return [round(lon, 5), round(lat, 5)]
 
 
 _GEOMETRIES = {
@@ -64,11 +67,25 @@ def _geometry(raw: Any) -> dict[str, Any] | None:
     while isinstance(anchor[0], list):
         anchor = anchor[0]
     lon, lat = anchor
-    return {"geometry": {"type": kind, "coordinates": coords}, "latitude": lat, "longitude": lon}
+
+    def vertices(parts):
+        if isinstance(parts[0], list):
+            for part in parts:
+                yield from vertices(part)
+        else:
+            yield parts
+
+    xs, ys = zip(*vertices(coords))
+    return {
+        "geometry": {"type": kind, "coordinates": coords},
+        "event_bbox": [min(xs), min(ys), max(xs), max(ys)],
+        "latitude": lat,
+        "longitude": lon,
+    }
 
 
 class _TransportEvents(LiveDevice):
-    fields = {"latitude": "deg", "longitude": "deg"}
+    fields = {"latitude": "deg", "longitude": "deg", "transport_notice_count": "count"}
 
     def _features(self) -> list[dict[str, Any]]:
         require_approved_source(self.policy_id).require_endpoint(self.url)
@@ -79,11 +96,15 @@ class _TransportEvents(LiveDevice):
         return features
 
     def _sign(self, rows: list[dict[str, Any]]) -> dict[str, Any]:
+        if len(json.dumps(rows, ensure_ascii=False, separators=(",", ":")).encode()) > 3_000_000:
+            raise DeviceOffline(f"{self.device_id}: event geometry exceeds the response budget")
         return signed_cluster_read(
-            self, rows, numeric_keys=tuple(self.fields), structured_keys=("geometry",),
-            meta_keys=("event_id", "title", "notice_type", "notice_subtype", "issue_at",
-                       "valid_from", "valid_until", "claim_class", "evidence_boundary",
-                       "forecast_hour", "base_ft", "top_ft"),
+            self, rows, numeric_keys=tuple(self.fields), structured_keys=("geometry", "event_bbox"),
+            meta_keys=("event_id", "title", "notice_text", "notice_type", "notice_subtype", "issue_at",
+                       "valid_from", "valid_until", "valid_at", "claim_class", "evidence_boundary",
+                       "forecast_hour", "base_ft", "top_ft", "level_ft", "severity"),
+            reading_meta={"source_read_at": datetime.now(UTC).isoformat()},
+            empty_values={"transport_notice_count": 0.0},
         )
 
 
@@ -100,7 +121,10 @@ class DigitrafficRoadNotices(_TransportEvents):
         super().__init__(*args, **kwargs)
         self.notice_type = "road work" if roadworks else "traffic announcement"
         self.url = self._base + ("roadworks" if roadworks else "traffic-announcements")
-        self.source = f"{self.url} (Fintraffic Digitraffic, CC BY 4.0; credit Fintraffic Digitraffic.)"
+        self.source = (
+            f"{self.url} (Fintraffic Digitraffic, CC BY 4.0; credit Fintraffic Digitraffic. "
+            "Geometry coordinates rounded to five decimals.)"
+        )
 
     def read(self) -> dict[str, Any]:
         now = datetime.now(UTC)
@@ -129,6 +153,7 @@ class DigitrafficRoadNotices(_TransportEvents):
                     continue
                 rows[event_id] = {
                     **geometry, "event_id": event_id, "title": announcement.get("title") or self.notice_type,
+                    "notice_text": announcement.get("comment"),
                     "notice_type": self.notice_type, "notice_subtype": props.get("trafficAnnouncementType"),
                     "issue_at": issued.isoformat(), "valid_from": start.isoformat(),
                     "valid_until": end.isoformat() if end else None,
@@ -144,9 +169,16 @@ class AwcGairmet(_TransportEvents):
 
     model = "GAIA-G-AIRMET (NOAA/NWS AWC)"
     policy_id = "awc_gairmet"
-    url = "https://aviationweather.gov/api/data/gairmet?format=geojson"
+    url = "https://aviationweather.gov/api/data/gairmet?format=geojson&fore=all"
     source = url + " (NOAA/NWS Aviation Weather Center; U.S. public domain; forecast snapshot.)"
     attribution = "NOAA/NWS Aviation Weather Center"
+
+    @staticmethod
+    def _altitude(value: Any) -> int | None:
+        if value == "SFC":
+            return 0
+        text = str(value or "")
+        return int(text) * 100 if re.fullmatch(r"[0-9]{1,3}", text) else None
 
     def read(self) -> dict[str, Any]:
         now = datetime.now(UTC)
@@ -165,17 +197,24 @@ class AwcGairmet(_TransportEvents):
             product = str(props.get("product") or "").strip()
             if not geometry or not hazard or not tag or not product:
                 continue
-            key = hashlib.sha256(f"{product}|{hazard}|{tag}|{valid.isoformat()}".encode()).hexdigest()[:24]
+            key_parts = [
+                product, hazard, tag, valid.isoformat(),
+                props.get("base"), props.get("top"), props.get("level"),
+                geometry["geometry"],
+            ]
+            key = hashlib.sha256(json.dumps(key_parts, separators=(",", ":")).encode()).hexdigest()[:24]
             old = rows.get(key)
             if old and old["issue_at"] >= issued.isoformat():
                 continue
             rows[key] = {
                 **geometry, "event_id": key, "title": f"G-AIRMET {hazard}", "notice_type": hazard,
+                "notice_text": props.get("dueTo"), "severity": props.get("severity"),
                 "notice_subtype": product, "issue_at": issued.isoformat(),
-                "valid_until": valid.isoformat(), "forecast_hour": props.get("forecast"),
-                "base_ft": props.get("base"), "top_ft": props.get("top"),
+                "valid_at": valid.isoformat(), "forecast_hour": props.get("forecast"),
+                "base_ft": self._altitude(props.get("base")), "top_ft": self._altitude(props.get("top")),
+                "level_ft": self._altitude(props.get("level")),
                 "claim_class": "aviation_forecast_snapshot",
                 "evidence_boundary": "Forecast at the stated UTC snapshot, for situational awareness. Obtain an official aviation weather briefing for flight decisions.",
             }
-        first_snapshot = min((row["valid_until"] for row in rows.values()), default=None)
-        return self._sign([row for row in rows.values() if row["valid_until"] == first_snapshot])
+        first_snapshot = min((row["valid_at"] for row in rows.values()), default=None)
+        return self._sign([row for row in rows.values() if row["valid_at"] == first_snapshot])

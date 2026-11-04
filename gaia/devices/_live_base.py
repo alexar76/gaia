@@ -47,6 +47,7 @@ _FIELD_UNITS: dict[str, str] = {
     "gage_height_m": "m",
     "wave_height_m": "m",
     "wave_period_s": "s",
+    "wave_direction_deg": "deg",
     "sst_c": "cel",
     # Free-to-commercialize open relays + own edge feeders
     "brightness_k": "K",

@@ -215,6 +215,7 @@ def signed_cluster_read(
     meta_keys: tuple[str, ...] = (),
     structured_keys: tuple[str, ...] = (),
     reading_meta: dict[str, Any] | None = None,
+    empty_values: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Attest headline plus the complete cluster for ATLAS fan-out.
 
@@ -222,13 +223,14 @@ def signed_cluster_read(
     while geometry-bearing feeds can retain JSON objects/lists without flattening
     them to a 500-character string. The attestation canonical binds ``hotspots``.
     """
-    if not hotspots:
+    if not hotspots and not empty_values:
         raise DeviceOffline(f"{device.device_id}: empty cluster")
-    honest: dict[str, float] = {}
-    for key in numeric_keys:
-        n = _num(hotspots[0].get(key))
-        if n is not None:
-            honest[key] = float(n)
+    honest: dict[str, float] = dict(empty_values or {}) if not hotspots else {}
+    if hotspots:
+        for key in numeric_keys:
+            n = _num(hotspots[0].get(key))
+            if n is not None:
+                honest[key] = float(n)
     if not honest:
         raise DeviceOffline(f"{device.device_id}: headline has no numeric fields")
     values = {k: round(v, 4) for k, v in device._faulted(honest).items()}

@@ -777,11 +777,49 @@ def build_live_fleet(clock: SimClock, key_dir: str = "data/devices") -> Fleet:
             "hubeau-groundwater-01", clock, site="live-hubeau-groundwater", key_dir=key_dir,
         ))
 
+    if _env("GAIA_FMI_MARINE_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_fmi_marine import FMI_MARINE_BUOYS, FmiMarine
+
+        for station_id in FMI_MARINE_BUOYS:
+            fleet.add(FmiMarine(
+                f"fmi-marine-{station_id}", clock, station_id=station_id,
+                site=f"live-fmi-marine-{station_id}", key_dir=key_dir,
+            ))
+
+    if _env("GAIA_SNOTEL_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_snotel import SNOTEL_STATIONS, UsdaSnotel
+
+        for station_triplet in SNOTEL_STATIONS:
+            device_id = f"snotel-{station_triplet.split(':', 1)[0]}"
+            fleet.add(UsdaSnotel(
+                device_id, clock, station_triplet=station_triplet,
+                site=f"live-{device_id}", key_dir=key_dir,
+            ))
+
     from gaia.devices.live_p5 import register_p5_relays
 
     n_p5 = register_p5_relays(fleet, clock, key_dir=key_dir)
     if n_p5:
         log.info("Registered %s P5 LIVE relay(s)", n_p5)
+
+    from gaia.devices.live_transport_events import AwcGairmet, DigitrafficRoadNotices
+
+    if _env("GAIA_FINTRAFFIC_ROAD_EVENTS_ENABLED", "1") not in ("0", "false", "no"):
+        fleet.add(DigitrafficRoadNotices(
+            "fintraffic-road-announcements-01", clock, site="live-fintraffic-announcements", key_dir=key_dir,
+        ))
+        fleet.add(DigitrafficRoadNotices(
+            "fintraffic-roadworks-01", clock, site="live-fintraffic-roadworks", key_dir=key_dir, roadworks=True,
+        ))
+    if _env("GAIA_AWC_GAIRMET_ENABLED", "1") not in ("0", "false", "no"):
+        fleet.add(AwcGairmet("awc-gairmet-01", clock, site="live-awc-gairmet", key_dir=key_dir))
+    if _env("GAIA_NDW_ROAD_EVENTS_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_ndw import NdwRoadNotices
+
+        fleet.add(NdwRoadNotices("ndw-road-srti-01", clock, site="live-ndw-srti", key_dir=key_dir))
+        fleet.add(NdwRoadNotices(
+            "ndw-road-closures-01", clock, site="live-ndw-closures", key_dir=key_dir, closures=True,
+        ))
 
     from gaia.devices.live_p6 import register_p6_relays
 
