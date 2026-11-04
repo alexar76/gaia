@@ -50,13 +50,15 @@ class Fleet:
     def read(self, device_id: str) -> dict[str, Any]:
         """Read one device and record the reading in its history."""
         device = self.get(device_id)
-        result = device.read()  # may raise DeviceOffline
+        return self.record_reading(device, device.read())
+
+    def record_reading(self, device: VirtualDevice, result: dict[str, Any]) -> dict[str, Any]:
         reading = result["reading"]
         if not device.retain_hotspots_in_history and "hotspots" in reading:
             # The verifier needs scalar values and sequence history. Leave
             # the large signed source cluster in the returned reading only.
             reading = {key: value for key, value in reading.items() if key != "hotspots"}
-        self._history[device_id].append(reading)
+        self._history[device.device_id].append(reading)
         return result
 
     def history(self, device_id: str) -> list[dict[str, Any]]:

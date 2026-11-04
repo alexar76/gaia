@@ -144,13 +144,29 @@ class GatewayRuntime:
 # ── Handlers ──────────────────────────────────────────────────────────────────
 
 _SOURCE_READ_CAPABILITIES = {
+    "aodn_wave_buoys": "gaia.marine.read@v1",
+    "bc_wildfire": "gaia.fire.perimeters.read@v1",
+    "dea_hotspots": "gaia.fire.hotspots.read@v1",
+    "geonet_volcano": "gaia.volcano.read@v1",
+    "irish_weather_buoys": "gaia.marine.read@v1",
+    "meteoswiss_pollen": "gaia.pollen.read@v1",
+    "ndw_ev_charging": "gaia.ev.charging.read@v1",
+    "noaa_spc_storm_reports": "gaia.storm.reports.read@v1",
+    "noaa_washington_vaac": "gaia.volcanic.ash.read@v1",
+    "arso_hydrometry": "gaia.river.read@v1",
     "bfs_gamma_odl": "gaia.radiation.ambient.read@v1",
     "chmi_hydrometry": "gaia.river.read@v1",
     "eccc_raqdps_smoke": "gaia.smoke.forecast.read@v1",
     "entur_rail": "gaia.rail.read@v1",
     "geonet_coastal": "gaia.tide.read@v1",
+    "kartverket_tide": "gaia.tide.read@v1",
+    "noaa_aoml_drifters": "gaia.ocean.drifters.read@v1",
+    "noaa_ports_air_gap": "gaia.bridge.clearance.read@v1",
     "smhi_ocean_observations": "gaia.ocean.observations.read@v1",
     "swpc_drap": "gaia.hf.absorption.read@v1",
+    "toronto_bikeshare": "gaia.bikeshare.read@v1",
+    "toronto_road_restrictions": "gaia.road.events.read@v1",
+    "ukpn_live_faults": "gaia.power.outages.read@v1",
 }
 
 
@@ -184,6 +200,41 @@ def _read_handler(
         if allowed_devices and device_id not in allowed_devices:
             raise ValueError(f"unsupported device for this capability: {device_id}")
         return runtime.read(device_id)  # ValueError (unknown) -> {ok:false}
+    return handler
+
+
+_REGIONAL_IN = {
+    "type": "object",
+    "properties": {
+        "device_id": {"type": "string"},
+        "west": {"type": "number", "minimum": -180, "maximum": 180},
+        "south": {"type": "number", "minimum": -90, "maximum": 90},
+        "east": {"type": "number", "minimum": -180, "maximum": 180},
+        "north": {"type": "number", "minimum": -90, "maximum": 90},
+    },
+}
+
+
+def _regional_read_handler(runtime: GatewayRuntime, device_id: str):
+    def handler(data: dict[str, Any]) -> dict[str, Any]:
+        if data.get("device_id") not in (None, "", device_id):
+            raise ValueError(f"unsupported device for this capability: {data['device_id']}")
+        keys = ("west", "south", "east", "north")
+        if not any(data.get(key) is not None for key in keys):
+            if any(data.get(key) is not None for key in ("offset", "limit", "snapshot_unix")):
+                raise ValueError("pagination requires the original bounding box")
+            return runtime.read(device_id)
+        if not all(type(data.get(key)) in (int, float) for key in keys):
+            raise ValueError("west, south, east and north must be supplied together as numbers")
+        west, south, east, north = (float(data[key]) for key in keys)
+        if not (-180 <= west < east <= 180 and -90 <= south < north <= 90):
+            raise ValueError("invalid bounding box")
+        device = runtime.fleet.get(device_id)
+        if device_id in {"ndw-ev-charging-01", "bc-wildfire-01"}:
+            opts = {key: data[key] for key in ("offset", "limit", "snapshot_unix") if data.get(key) is not None}
+            return runtime.fleet.record_reading(device, device.read_bbox(west, south, east, north, **opts))
+        return runtime.fleet.record_reading(device, device.read_bbox(west, south, east, north))
+
     return handler
 
 
@@ -1093,8 +1144,10 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             price_per_call_usd=0.002, p50_latency_ms=120,
         ))
     from gaia.devices.live import NDBCBuoy, NOAATideStation, OpenMeteoMarine, USGSRiverGauge
+    from gaia.devices.live_arso_hydro import ArsoRiverGauge
     from gaia.devices.live_chmi_hydro import ChmiRiverGauge
     from gaia.devices.live_geonet_coastal import GeonetCoastalGauge
+    from gaia.devices.live_kartverket_tide import KartverketTideGauge
     from gaia.devices.live_p1 import UhslcTide
     from gaia.devices.live_p2 import EcccHydrometric, SmhiHydrology
     from gaia.devices.live_p5 import AviationMetar, PegelonlineRiver
@@ -1123,6 +1176,11 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
         tide_ids.extend(geonet_coastal_ids)
         tide_sources.append("GeoNet New Zealand (CC BY 3.0 NZ), water height above the local pressure sensor "
                             f"at {', '.join(geonet_coastal_ids)}")
+    kartverket_ids = [d.device_id for d in runtime.fleet.devices() if isinstance(d, KartverketTideGauge)]
+    if kartverket_ids:
+        tide_ids.extend(kartverket_ids)
+        tide_sources.append("Kartverket Norwegian coastal observations (CC BY 4.0), water level in metres "
+                            f"relative to NN2000 at {', '.join(kartverket_ids)}")
     if tide_ids:
         caps.append(Capability(
             capability_id="gaia.tide.read@v1",
@@ -1160,10 +1218,14 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             ),
         )
     ]
+    arso_ids = [d.device_id for d in runtime.fleet.devices() if isinstance(d, ArsoRiverGauge)]
+    river_ids.extend(arso_ids)
     if river_ids:
         chmi_ids = [device_id for device_id in river_ids if device_id.startswith("chmi-river-")]
         chmi_description = ("Czech Hydrometeorological Institute ČHMÚ (CC BY 4.0), preliminary paired stage "
                             f"and discharge at {', '.join(chmi_ids)}. " if chmi_ids else "")
+        arso_description = ("Slovenian Environment Agency ARSO, preliminary paired stage and discharge at "
+                            f"{', '.join(arso_ids)}. " if arso_ids else "")
         caps.append(Capability(
             capability_id="gaia.river.read@v1",
             description="Live river-gauge relay — USGS NWIS, ECCC hydrometric (End-use "
@@ -1175,7 +1237,7 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
                         "(OGD-CH Open-Use; geodetic water level, not USGS stage), "
                         "Lithuania LHMT lt-hydro-*-01 (CC BY-SA 4.0), Latvia LVGMC "
                         "lv-hydro-*-01 (CC0-1.0), and/or Ireland OPW ie-river-*-01 "
-                        f"(CC BY 4.0; stations >41000 excluded). {chmi_description}"
+                        f"(CC BY 4.0; stations >41000 excluded). {chmi_description}{arso_description}"
                         "Discharge (m³/s) + stage when the "
                         f"upstream publishes it. Default device_id={river_ids[0]}. Ed25519-attested.",
             handler=_read_handler(runtime, river_ids[0]),
@@ -1204,11 +1266,12 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             price_per_call_usd=0.002, p50_latency_ms=500,
         ))
     from gaia.devices.live_fmi_marine import FmiMarine
+    from gaia.devices.live_wave_stations import AodnWaveBuoy, IrishWeatherBuoy, METEOSWISS_POLLEN_STATIONS
 
     marine_ids = [
         d.device_id
         for d in runtime.fleet.devices()
-        if isinstance(d, (NDBCBuoy, OpenMeteoMarine, CdipWave, FmiMarine))
+        if isinstance(d, (NDBCBuoy, OpenMeteoMarine, CdipWave, FmiMarine, IrishWeatherBuoy, AodnWaveBuoy))
     ]
     fmi_marine_ids = [d.device_id for d in runtime.fleet.devices() if isinstance(d, FmiMarine)]
     if marine_ids:
@@ -1216,11 +1279,19 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             f"FMI measured waves and sea temperature (CC BY 4.0; credit FMI): {', '.join(fmi_marine_ids)}. "
             if fmi_marine_ids else ""
         )
+        station_sources = []
+        for adapter, description in (
+            (IrishWeatherBuoy, "Irish Marine Institute IWBNetwork measured waves and sea temperature"),
+            (AodnWaveBuoy, "AODN IMOS Australian measured wave height, peak period and direction"),
+        ):
+            ids = [d.device_id for d in runtime.fleet.devices() if isinstance(d, adapter)]
+            if ids:
+                station_sources.append(f"{description} (CC BY 4.0): {', '.join(ids)}. ")
         caps.append(Capability(
             capability_id="gaia.marine.read@v1",
             description="Live marine relay — wave height (m) from NOAA NDBC, Open-Meteo Marine, "
                         "and/or CDIP ERDDAP West Coast buoys (acknowledge CDIP/Scripps/USACE). "
-                        f"{fmi_description}Default device_id={marine_ids[0]}. Ed25519-attested.",
+                        f"{fmi_description}{''.join(station_sources)}Default device_id={marine_ids[0]}. Ed25519-attested.",
             handler=_read_handler(runtime, marine_ids[0]),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.001, p50_latency_ms=120,
@@ -1429,12 +1500,18 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=300,
         ))
-    if _has("usgs-volcano-01"):
+    volcano_ids = tuple(device_id for device_id in ("usgs-volcano-01", "geonet-volcano-01") if _has(device_id))
+    if volcano_ids:
+        volcano_sources = {
+            "usgs-volcano-01": "USGS elevated volcanoes (U.S. public domain)",
+            "geonet-volcano-01": "GeoNet New Zealand volcanic alert levels, aviation color codes and timestamped camera snapshots (CC BY 3.0 NZ)",
+        }
         caps.append(Capability(
             capability_id="gaia.volcano.read@v1",
-            description="Live USGS elevated volcanoes (alert / aviation color). U.S. public "
-                        "domain. device_id=usgs-volcano-01. Ed25519-attested.",
-            handler=_read_handler(runtime, "usgs-volcano-01"),
+            description="Live volcanic alert levels. " + ". ".join(
+                f"{volcano_sources[device_id]}: {device_id}" for device_id in volcano_ids
+            ) + ". Ed25519-attested.",
+            handler=_read_handler(runtime, volcano_ids[0]),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=200,
         ))
@@ -1499,13 +1576,17 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
         ))
     finnish_road_ids = ("fintraffic-road-announcements-01", "fintraffic-roadworks-01")
     dutch_road_ids = ("ndw-road-srti-01", "ndw-road-closures-01")
-    road_event_ids = tuple(device_id for device_id in (*finnish_road_ids, *dutch_road_ids) if _has(device_id))
+    toronto_road_id = "toronto-road-restrictions-01"
+    road_event_ids = tuple(device_id for device_id in (*finnish_road_ids, *dutch_road_ids, toronto_road_id)
+                           if _has(device_id))
     if road_event_ids:
         providers = []
         if any(device_id in road_event_ids for device_id in finnish_road_ids):
             providers.append("Fintraffic Finnish notices and works (CC BY 4.0; credit Fintraffic Digitraffic)")
         if any(device_id in road_event_ids for device_id in dutch_road_ids):
             providers.append("NDW Dutch safety notices and closures (CC0 1.0)")
+        if toronto_road_id in road_event_ids:
+            providers.append("City of Toronto reported road restrictions and closures (Open Government Licence – Toronto)")
         caps.append(Capability(
             capability_id="gaia.road.events.read@v1",
             description=f"Road notices within published validity, with source geometry. {'; '.join(providers)}. "
@@ -1514,6 +1595,53 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=350,
         ))
+
+    if _has("ukpn-live-faults-01"):
+        caps.append(Capability(
+            capability_id="gaia.power.outages.read@v1",
+            description="UK Power Networks reported electricity supply interruptions in London, the East and "
+                        "South East of England (CC BY 4.0). A current snapshot of operator-published incidents. "
+                        "Device ukpn-live-faults-01. Ed25519-attested.",
+            handler=_read_handler(runtime, "ukpn-live-faults-01", allowed_devices=("ukpn-live-faults-01",)),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=350,
+        ))
+    if _has("toronto-bikeshare-01"):
+        caps.append(Capability(
+            capability_id="gaia.bikeshare.read@v1",
+            description="Bike Share Toronto public GBFS stations with available bikes and docks "
+                        "(Open Government Licence – Toronto). Station coordinates and availability reports "
+                        "up to five minutes old. "
+                        "Device toronto-bikeshare-01. Ed25519-attested.",
+            handler=_read_handler(runtime, "toronto-bikeshare-01", allowed_devices=("toronto-bikeshare-01",)),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=350,
+        ))
+    if _has("aoml-drifters-01"):
+        caps.append(Capability(
+            capability_id="gaia.ocean.drifters.read@v1",
+            description="NOAA AOML / OSMC real-time drifting buoys (CC0 1.0). Latest positions and measured "
+                        "sea-surface temperatures up to six hours old, plus air pressure where published. "
+                        "Device aoml-drifters-01. Ed25519-attested.",
+            handler=_read_handler(runtime, "aoml-drifters-01", allowed_devices=("aoml-drifters-01",)),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=400,
+        ))
+    from gaia.devices.live_noaa_airgap import NOAA_AIR_GAP_PILOTS
+
+    air_gap_ids = tuple(device_id for device_id in NOAA_AIR_GAP_PILOTS if _has(device_id))
+    if air_gap_ids:
+        caps.append(Capability(
+            capability_id="gaia.bridge.clearance.read@v1",
+            description="NOAA NOS CO-OPS PORTS measured bridge air gap, vertical distance from the water "
+                        "surface to the sensor reference (metres, U.S. public domain). Preliminary measurements "
+                        "up to 18 minutes old for situational awareness. Consult official navigation sources. "
+                        f"Select {', '.join(air_gap_ids)}. Default device_id={air_gap_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, air_gap_ids[0], allowed_devices=air_gap_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=200,
+        ))
+
     if _has("awc-gairmet-01"):
         caps.append(Capability(
             capability_id="gaia.aviation.hazards.read@v1",
@@ -1523,6 +1651,46 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             handler=_read_handler(runtime, "awc-gairmet-01", allowed_devices=("awc-gairmet-01",)),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=300,
+        ))
+    for capability, device_id, description, regional in (
+        ("gaia.ev.charging.read@v1", "ndw-ev-charging-01",
+         "NDW DOT-NL public EV charging locations in the Netherlands (CC0 1.0). Available connectors by type and power. Defaults to a Utrecht pilot; use a bounding box up to 4 square degrees and the returned pagination fields for dense areas.", True),
+        ("gaia.fire.perimeters.read@v1", "bc-wildfire-01",
+         "BC Wildfire Service British Columbia active wildfire locations and available reported fire perimeters (Open Government Licence – British Columbia). Feed updates and perimeter observation dates are distinct. Optional bounding box and pagination.", True),
+        ("gaia.storm.reports.read@v1", "noaa-spc-storm-reports-01",
+         "NOAA NWS Storm Prediction Center Local Storm Reports, preliminary tornado, hail and wind events in a rolling 24-hour window (U.S. public domain).", False),
+        ("gaia.volcanic.ash.read@v1", "noaa-vaac-ash-01",
+         "NOAA Washington Volcanic Ash Advisory Center (VAAC) current advisories and observed or forecast ash polygons with altitude and validity (U.S. public domain). Consult official sources for flight decisions.", False),
+        ("gaia.fire.hotspots.read@v1", "dea-hotspots-01",
+         "Geoscience Australia Digital Earth Australia (DEA) Hotspots satellite thermal detections, including Himawari-9 (CC BY 4.0). Recent observations with bounding box, count and completeness.", True),
+    ):
+        if not _has(device_id):
+            continue
+        schema = _REGIONAL_IN if regional else _DEVICE_IN
+        if device_id in {"ndw-ev-charging-01", "bc-wildfire-01"}:
+            schema = {**schema, "properties": {**schema["properties"],
+                "offset": {"type": "integer", "minimum": 0},
+                "limit": {"type": "integer", "minimum": 1, "maximum": 500},
+                "snapshot_unix": {"type": "number", "description": "Snapshot token returned on the first page"},
+            }}
+        caps.append(Capability(
+            capability_id=capability,
+            description=f"{description} Device {device_id}. Ed25519-attested.",
+            handler=_regional_read_handler(runtime, device_id) if regional else
+                    _read_handler(runtime, device_id, allowed_devices=(device_id,)),
+            product_id=product, input_schema=schema, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=500,
+        ))
+    pollen_ids = tuple(device_id for code in METEOSWISS_POLLEN_STATIONS
+                       if _has(device_id := f"ch-pollen-{code.lower()}"))
+    if pollen_ids:
+        caps.append(Capability(
+            capability_id="gaia.pollen.read@v1",
+            description="MeteoSwiss A7 measured Swiss airborne pollen for seven taxa at hourly resolution "
+                        f"(CC BY 4.0). Select {', '.join(pollen_ids)}. Ed25519-attested.",
+            handler=_read_handler(runtime, pollen_ids[0], allowed_devices=pollen_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.001, p50_latency_ms=300,
         ))
     rail_ids = tuple(device_id for device_id in ("fintraffic-rail-01", "entur-rail-vyg-01") if _has(device_id))
     if rail_ids:

@@ -17,7 +17,7 @@ the interface and the math, not a trust topology.
 from __future__ import annotations
 
 import statistics
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from gaia.attestation import verify_reading
@@ -86,6 +86,8 @@ PHYSICS: dict[str, FieldPhysics] = {
     "scene_class": FieldPhysics(0.0, 11.0, 11.0, None, 1.0, z_check=False),
     "scene_cloud_pct": FieldPhysics(0.0, 100.0, 100.0, None, 1.0, z_check=False),
     "observation_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "source_published_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "source_expires_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
     "forecast_issued_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
     "forecast_run_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
     "forecast_valid_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
@@ -93,7 +95,14 @@ PHYSICS: dict[str, FieldPhysics] = {
     "forecast_smoke_pm2_5_ugm3": FieldPhysics(0.0, 100_000.0, 100_000.0, None, 0.0001, z_check=False),
     "drap_frequency_mhz": FieldPhysics(0.0, 100.0, 100.0, None, 0.01, z_check=False),
     "water_level_maod": FieldPhysics(-20.0, 20.0, 40.0, None, 0.001, z_check=False),
+    "water_level_nn2000_m": FieldPhysics(-20.0, 20.0, 40.0, None, 0.001, z_check=False),
     "coastal_water_height_m": FieldPhysics(0.0, 30.0, 30.0, None, 0.001, z_check=False),
+    "air_gap_m": FieldPhysics(0.0, 150.0, 150.0, None, 0.001, z_check=False),
+    "air_gap_sigma_m": FieldPhysics(0.0, 150.0, 150.0, None, 0.001, z_check=False),
+    "air_gap_outlier_count": FieldPhysics(0.0, 360.0, 360.0, None, 1.0, z_check=False),
+    "air_gap_flat_flag": FieldPhysics(0.0, 0.0, 0.0, None, 1.0, z_check=False),
+    "air_gap_rate_flag": FieldPhysics(0.0, 0.0, 0.0, None, 1.0, z_check=False),
+    "air_gap_limit_flag": FieldPhysics(0.0, 0.0, 0.0, None, 1.0, z_check=False),
     "observation_age_days": FieldPhysics(0.0, 400.0, 400.0, None, 1.0, z_check=False),
     "magnitude": FieldPhysics(0.0, 10.0, 10.0, None, 0.1, z_check=False, stuck_check=False),
     "depth_km": FieldPhysics(-5.0, 800.0, 50.0, None, 1.0, z_check=False),
@@ -188,7 +197,62 @@ PHYSICS: dict[str, FieldPhysics] = {
     "storage_m3": FieldPhysics(0.0, 1e14, 1e8, None, 1.0, z_check=False),
     "uv_index": FieldPhysics(0.0, 30.0, 10.0, None, 0.1, z_check=False),
     "transport_notice_count": FieldPhysics(0.0, 5_000.0, 5_000.0, None, 1.0, z_check=False),
+    "power_outage_count": FieldPhysics(0.0, 5_000.0, 5_000.0, None, 1.0, z_check=False),
+    "customers_affected": FieldPhysics(0.0, 10_000_000.0, 10_000_000.0, None, 1.0, z_check=False),
+    "bikes_available": FieldPhysics(0.0, 10_000.0, 10_000.0, None, 1.0, z_check=False),
+    "ebikes_available": FieldPhysics(0.0, 10_000.0, 10_000.0, None, 1.0, z_check=False),
+    "docks_available": FieldPhysics(0.0, 10_000.0, 10_000.0, None, 1.0, z_check=False),
+    "is_renting": FieldPhysics(0.0, 1.0, 1.0, None, 1.0, z_check=False),
+    "is_returning": FieldPhysics(0.0, 1.0, 1.0, None, 1.0, z_check=False),
+    "bikeshare_station_count": FieldPhysics(0.0, 5_000.0, 5_000.0, None, 1.0, z_check=False),
+    "sea_level_pressure_hpa": FieldPhysics(800.0, 1100.0, 300.0, None, 0.1, z_check=False),
     "rainfall_mm": FieldPhysics(0.0, 1_000.0, 100.0, None, 0.01, z_check=False),
+    "snapshot_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "source_retrieved_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "ignition_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "perimeter_observation_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "perimeter_published_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
+    "wave_period_s": FieldPhysics(0.0, 60.0, 60.0, None, 0.01, z_check=False),
+    "wave_qc_flag": FieldPhysics(0.0, 1.0, 1.0, None, 1.0, z_check=False),
+    "sea_temperature_c": FieldPhysics(-3.0, 45.0, 48.0, None, 0.01, z_check=False),
+    "wind_direction_deg": FieldPhysics(0.0, 360.0, 360.0, None, 1.0, z_check=False),
+    "volcanic_alert_level": FieldPhysics(0.0, 5.0, 5.0, None, 1.0, z_check=False),
+    "coverage_complete": FieldPhysics(0.0, 1.0, 1.0, None, 1.0, z_check=False),
+    "inventory_total": FieldPhysics(0.0, 250_000.0, 250_000.0, None, 1.0, z_check=False),
+    "page_offset": FieldPhysics(0.0, 250_000.0, 250_000.0, None, 1.0, z_check=False),
+    "next_offset": FieldPhysics(-1.0, 250_000.0, 250_001.0, None, 1.0, z_check=False),
+    "hotspot_matched": FieldPhysics(0.0, 250_000.0, 250_000.0, None, 1.0, z_check=False),
+    "charging_station_count": FieldPhysics(0.0, 250_000.0, 250_000.0, None, 1.0, z_check=False),
+    "wildfire_incident_count": FieldPhysics(0.0, 2_000.0, 2_000.0, None, 1.0, z_check=False),
+    "storm_report_count": FieldPhysics(0.0, 5_000.0, 5_000.0, None, 1.0, z_check=False),
+    "ash_shape_count": FieldPhysics(0.0, 5_000.0, 5_000.0, None, 1.0, z_check=False),
+    "available_count": FieldPhysics(0.0, 100_000.0, 100_000.0, None, 1.0, z_check=False),
+    "connector_count": FieldPhysics(0.0, 100_000.0, 100_000.0, None, 1.0, z_check=False),
+    "max_power_kw": FieldPhysics(0.0, 5_000.0, 5_000.0, None, 1.0, z_check=False),
+    "area_ha": FieldPhysics(0.0, 100_000_000.0, 100_000_000.0, None, 1.0, z_check=False),
+    "perimeter_area_ha": FieldPhysics(0.0, 100_000_000.0, 100_000_000.0, None, 1.0, z_check=False),
+    "hail_size_mm": FieldPhysics(0.0, 304.8, 304.8, None, 0.1, z_check=False),
+    "base_ft": FieldPhysics(0.0, 80_000.0, 80_000.0, None, 1.0, z_check=False),
+    "top_ft": FieldPhysics(0.0, 80_000.0, 80_000.0, None, 1.0, z_check=False),
+    "forecast_hour": FieldPhysics(0.0, 24.0, 24.0, None, 0.1, z_check=False),
+    "bbox_west_deg": FieldPhysics(-180.0, 180.0, 360.0, None, 0.01, z_check=False),
+    "bbox_east_deg": FieldPhysics(-180.0, 180.0, 360.0, None, 0.01, z_check=False),
+    "bbox_south_deg": FieldPhysics(-90.0, 90.0, 180.0, None, 0.01, z_check=False),
+    "bbox_north_deg": FieldPhysics(-90.0, 90.0, 180.0, None, 0.01, z_check=False),
+}
+for _taxon in ("alder", "ash", "beech", "birch", "grass", "hazel", "oak"):
+    PHYSICS.setdefault(f"{_taxon}_pollen_grains_m3", FieldPhysics(0.0, 100_000.0, 100_000.0, None, 0.01, z_check=False))
+
+# Frequent reads repeat the same half-hour ARSO observation, while consecutive
+# AOML cluster headlines can come from buoys in different oceans.
+_SOURCE_FIELD_PHYSICS = {
+    "arso_hydrometry": {
+        name: replace(PHYSICS[name], slope_per_min=None, stuck_check=False, z_check=False)
+        for name in ("gage_height_m", "water_temperature_c")
+    },
+    "noaa_aoml_drifters": {"sst_c": FieldPhysics(-2.5, 40.0, 42.5, None, 0.1, z_check=False)},
+    "dea_hotspots": {"brightness_k": FieldPhysics(100.0, 1500.0, 1400.0, None, 0.1, z_check=False)},
+    "noaa_spc_storm_reports": {"wind_mps": FieldPhysics(0.0, 135.0, 135.0, None, 0.1, z_check=False)},
 }
 
 # Hard checks disqualify their field outright: physics violations (bounds,
@@ -293,9 +357,10 @@ class PlausibilityVerifier:
         values = reading.get("values") or {}
         history = self._prior_history(device_id, reading)
         prev = history[-1] if history else None
+        source_physics = _SOURCE_FIELD_PHYSICS.get(getattr(device, "policy_id", None), {})
 
         for fname, value in values.items():
-            phys = PHYSICS.get(fname)
+            phys = source_physics.get(fname, PHYSICS.get(fname))
             if phys is None:
                 checks.append(Check(f"schema:{fname}", False, "field not in physics table"))
                 continue

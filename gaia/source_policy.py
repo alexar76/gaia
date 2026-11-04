@@ -36,6 +36,63 @@ class SourcePolicy:
 
 # Only sources approved in docs/specs/05-atlas-gaia-gnss-pnt-integrity.md.
 APPROVED_SOURCES: dict[str, SourcePolicy] = {
+    "ndw_ev_charging": SourcePolicy(
+        "ndw_ev_charging", "NDW DOT-NL public charging availability", "CC0 1.0",
+        "NDW open data may be used and redistributed commercially; use the public DOT-NL feeds.",
+        "NDW DOT-NL · CC0 1.0", ("dotnl.ndw.nu", "opendata.ndw.nu"),
+        licence_url="https://docs.ndw.nu/algemeen/data-gebruiksvoorwaarden/",
+    ),
+    "bc_wildfire": SourcePolicy(
+        "bc_wildfire", "BC Wildfire Service current fires and perimeters", "Open Government Licence – British Columbia 2.0",
+        "The provincial open data catalogue permits free commercial reuse with attribution.",
+        "Contains information licensed under the Open Government Licence – British Columbia.",
+        ("services6.arcgis.com",),
+        licence_url="https://www2.gov.bc.ca/gov/content/data/policy-standards/data-policies/open-data/open-government-licence-bc",
+    ),
+    "meteoswiss_pollen": SourcePolicy(
+        "meteoswiss_pollen", "MeteoSwiss automatic pollen stations", "CC BY 4.0",
+        "MeteoSwiss Open Data may be processed and redistributed commercially with source credit.",
+        "Source: MeteoSwiss · CC BY 4.0", ("data.geo.admin.ch",),
+        licence_url="https://opendatadocs.meteoswiss.ch/general/terms-of-use",
+    ),
+    "irish_weather_buoys": SourcePolicy(
+        "irish_weather_buoys", "Irish Marine Institute Weather Buoy Network", "CC BY 4.0",
+        "The IWBNetwork dataset permits commercial reuse with attribution.",
+        "Marine Institute and Met Éireann · Irish Weather Buoy Network · CC BY 4.0",
+        ("erddap.marine.ie",), licence_url="https://erddap.marine.ie/erddap/info/IWBNetwork/index.html",
+    ),
+    "aodn_wave_buoys": SourcePolicy(
+        "aodn_wave_buoys", "Australian Ocean Data Network real-time wave observations", "CC BY 4.0",
+        "The public dataset permits commercial reuse with attribution to IMOS and contributors.",
+        "Data was sourced from Australia’s Integrated Marine Observing System (IMOS) - IMOS is enabled by "
+        "the National Collaborative Research Infrastructure Strategy (NCRIS) · AODN and contributors · CC BY 4.0",
+        ("thredds.aodn.org.au", "aodn-cloud-optimised.s3.ap-southeast-2.amazonaws.com"),
+        licence_url="https://registry.opendata.aws/aodn_wave_buoy_realtime_nonqc/",
+    ),
+    "geonet_volcano": SourcePolicy(
+        "geonet_volcano", "GeoNet volcanic alert levels and camera images", "CC BY 3.0 NZ",
+        "GeoNet data and images may be reused commercially with GeoNet and sponsor credit.",
+        "GeoNet / Earth Sciences New Zealand and GeoNet sponsors · CC BY 3.0 NZ",
+        ("api.geonet.org.nz", "images.geonet.org.nz"), licence_url="https://www.geonet.org.nz/policy",
+    ),
+    "noaa_spc_storm_reports": SourcePolicy(
+        "noaa_spc_storm_reports", "NOAA/NWS SPC preliminary local storm reports", "U.S. Government public domain",
+        "NWS published factual fields are free for lawful reuse. Relay only structured event data.",
+        "NOAA / NWS Storm Prediction Center", ("www.spc.noaa.gov",),
+        licence_url="https://www.weather.gov/disclaimer",
+    ),
+    "noaa_washington_vaac": SourcePolicy(
+        "noaa_washington_vaac", "NOAA Washington VAAC volcanic ash advisories", "U.S. Government public domain",
+        "Use the NOAA-authored Washington VAAC advisories and their source geometry.",
+        "NOAA / NESDIS Washington Volcanic Ash Advisory Center", ("www.ospo.noaa.gov",),
+        licence_url="https://www.noaa.gov/office-education/outreach-communication/faq",
+    ),
+    "dea_hotspots": SourcePolicy(
+        "dea_hotspots", "Digital Earth Australia public Hotspots", "CC BY 4.0",
+        "Geoscience Australia's public product permits commercial reuse with attribution.",
+        "Geoscience Australia · Digital Earth Australia Hotspots · CC BY 4.0",
+        ("hotspots.dea.ga.gov.au",), licence_url="https://knowledge.dea.ga.gov.au/data/product/dea-hotspots/",
+    ),
     "cybernews_gnss": SourcePolicy(
         "cybernews_gnss", "CyberNews GNSS interference registry", "CC BY 4.0",
         "Commercial reuse is permitted with attribution.",
@@ -357,6 +414,48 @@ APPROVED_SOURCES: dict[str, SourcePolicy] = {
         "Commercial reuse is permitted with attribution to Entur and indication of changes.",
         "Entur · Norwegian Licence for Open Government Data (NLOD)", ("api.entur.io",),
         licence_url="https://developer.entur.no/terms-of-service",
+    ),
+    "arso_hydrometry": SourcePolicy(
+        "arso_hydrometry", "ARSO preliminary river observations", "ARSO public information reuse terms",
+        "Commercial reuse is permitted with citation of the source.",
+        "Agencija Republike Slovenije za okolje (ARSO)", ("www.arso.gov.si",),
+        licence_url="https://kazalci.arso.gov.si/en/content/legal-note",
+    ),
+    "kartverket_tide": SourcePolicy(
+        "kartverket_tide", "Kartverket observed coastal water level", "CC BY 4.0",
+        "Commercial reuse is permitted with attribution to Kartverket and indication of changes.",
+        "Kartverket (Norwegian Hydrographic Service) · CC BY 4.0", ("vannstand.kartverket.no",),
+        licence_url="https://vannstand.kartverket.no/tideapi_en.html",
+    ),
+    "noaa_aoml_drifters": SourcePolicy(
+        "noaa_aoml_drifters", "NOAA AOML / OSMC real-time drifter observations", "CC0 1.0",
+        "Commercial reuse is permitted. Credit NOAA AOML / OSMC.",
+        "NOAA AOML / OSMC · CC0 1.0", ("osmc.noaa.gov",),
+        licence_url="https://osmc.noaa.gov/erddap/info/OSMC_flattened/index.json",
+    ),
+    "noaa_ports_air_gap": SourcePolicy(
+        "noaa_ports_air_gap", "NOAA NOS CO-OPS PORTS air gap observations", "U.S. Government public domain",
+        "Commercial reuse is permitted. Credit NOAA NOS CO-OPS and identify preliminary observations.",
+        "NOAA NOS CO-OPS · U.S. Government public domain", ("api.tidesandcurrents.noaa.gov",),
+        licence_url="https://opendap.co-ops.nos.noaa.gov/erddap/info/IOOS_Air_Gap/index.html",
+    ),
+    "toronto_road_restrictions": SourcePolicy(
+        "toronto_road_restrictions", "City of Toronto road restrictions", "Open Government Licence – Toronto",
+        "Commercial reuse is permitted with the prescribed City of Toronto attribution.",
+        "City of Toronto · Contains information licensed under the Open Government Licence – Toronto.",
+        ("secure.toronto.ca",), licence_url="https://open.toronto.ca/open-data-licence/",
+    ),
+    "toronto_bikeshare": SourcePolicy(
+        "toronto_bikeshare", "City of Toronto Bike Share GBFS", "Open Government Licence – Toronto",
+        "Commercial reuse is permitted with the prescribed City of Toronto attribution.",
+        "City of Toronto · Contains information licensed under the Open Government Licence – Toronto.",
+        ("tor.publicbikesystem.net",), licence_url="https://open.toronto.ca/open-data-licence/",
+    ),
+    "ukpn_live_faults": SourcePolicy(
+        "ukpn_live_faults", "UK Power Networks live faults", "CC BY 4.0",
+        "Commercial reuse is permitted with attribution to UK Power Networks and indication of changes.",
+        "UK Power Networks · CC BY 4.0", ("ukpowernetworks.opendatasoft.com",),
+        licence_url="https://creativecommons.org/licenses/by/4.0/",
     ),
     "usda_nrcs_snotel": SourcePolicy(
         "usda_nrcs_snotel", "USDA NRCS SNOTEL hourly observations", "U.S. Government public domain",

@@ -841,6 +841,80 @@ def build_live_fleet(clock: SimClock, key_dir: str = "data/devices") -> Fleet:
 
         fleet.add(EnturRail("entur-rail-vyg-01", clock, site="live-entur-rail-vyg", key_dir=key_dir))
 
+    if enabled("GAIA_ARSO_HYDRO_ENABLED"):
+        from gaia.devices.live_arso_hydro import ARSO_RIVER_GAUGES, ArsoRiverGauge
+
+        for station_id in ARSO_RIVER_GAUGES:
+            device_id = f"arso-river-{station_id}"
+            fleet.add(ArsoRiverGauge(
+                device_id, clock, station_id=station_id, site=f"live-{device_id}", key_dir=key_dir,
+            ))
+
+    if enabled("GAIA_KARTVERKET_TIDE_ENABLED"):
+        from gaia.devices.live_kartverket_tide import KARTVERKET_TIDE_GAUGES, KartverketTideGauge
+
+        for station_code in KARTVERKET_TIDE_GAUGES:
+            device_id = f"kartverket-tide-{station_code.lower()}"
+            fleet.add(KartverketTideGauge(
+                device_id, clock, station_code=station_code, site=f"live-{device_id}", key_dir=key_dir,
+            ))
+
+    if enabled("GAIA_UKPN_ENABLED"):
+        from gaia.devices.live_ukpn import UkpnLiveFaults
+
+        fleet.add(UkpnLiveFaults("ukpn-live-faults-01", clock, site="live-ukpn-faults", key_dir=key_dir))
+
+    if enabled("GAIA_TORONTO_ROADS_ENABLED"):
+        from gaia.devices.live_toronto import TorontoRoadRestrictions
+
+        fleet.add(TorontoRoadRestrictions(
+            "toronto-road-restrictions-01", clock, site="live-toronto-roads", key_dir=key_dir,
+        ))
+
+    if enabled("GAIA_TORONTO_BIKESHARE_ENABLED"):
+        from gaia.devices.live_toronto import TorontoBikeShare
+
+        fleet.add(TorontoBikeShare("toronto-bikeshare-01", clock, site="live-toronto-bikeshare", key_dir=key_dir))
+
+    if enabled("GAIA_AOML_DRIFTERS_ENABLED"):
+        from gaia.devices.live_aoml_drifters import AomlDrifters
+
+        fleet.add(AomlDrifters("aoml-drifters-01", clock, site="live-noaa-aoml-drifters", key_dir=key_dir))
+
+    if enabled("GAIA_NOAA_AIR_GAP_ENABLED"):
+        from gaia.devices.live_noaa_airgap import NOAA_AIR_GAP_PILOTS, NoaaAirGap
+
+        for device_id in NOAA_AIR_GAP_PILOTS:
+            fleet.add(NoaaAirGap(device_id, clock, site=f"live-{device_id}", key_dir=key_dir))
+
+    from gaia.devices.live_wave_hazards import DeaHotspots, SpcStormReports, WashingtonVaacAsh
+    from gaia.devices.live_wave_infra import BcWildfireService, NdwEvCharging
+    from gaia.devices.live_wave_stations import (
+        AODN_WAVE_BUOYS, IRISH_WEATHER_BUOYS, METEOSWISS_POLLEN_STATIONS,
+        AodnWaveBuoy, GeonetVolcano, IrishWeatherBuoy, MeteoSwissPollen,
+    )
+
+    for flag, device_id, adapter in (
+        ("NDW_EV_CHARGING", "ndw-ev-charging-01", NdwEvCharging),
+        ("BC_WILDFIRE", "bc-wildfire-01", BcWildfireService),
+        ("GEONET_VOLCANO", "geonet-volcano-01", GeonetVolcano),
+        ("NOAA_SPC", "noaa-spc-storm-reports-01", SpcStormReports),
+        ("NOAA_VAAC", "noaa-vaac-ash-01", WashingtonVaacAsh),
+        ("DEA_HOTSPOTS", "dea-hotspots-01", DeaHotspots),
+    ):
+        if enabled(f"GAIA_{flag}_ENABLED"):
+            fleet.add(adapter(device_id, clock, site=f"live-{device_id}", key_dir=key_dir))
+    for flag, prefix, stations, adapter in (
+        ("METEOSWISS_POLLEN", "ch-pollen", METEOSWISS_POLLEN_STATIONS, MeteoSwissPollen),
+        ("IRISH_WEATHER_BUOYS", "ie-buoy", IRISH_WEATHER_BUOYS, IrishWeatherBuoy),
+        ("AODN_WAVE_BUOYS", "au-wave", AODN_WAVE_BUOYS, AodnWaveBuoy),
+    ):
+        if enabled(f"GAIA_{flag}_ENABLED"):
+            for station_code in stations:
+                device_id = f"{prefix}-{station_code.lower()}"
+                fleet.add(adapter(device_id, clock, station_code=station_code,
+                                  site=f"live-{device_id}", key_dir=key_dir))
+
     from gaia.devices.live_p5 import register_p5_relays
 
     n_p5 = register_p5_relays(fleet, clock, key_dir=key_dir)

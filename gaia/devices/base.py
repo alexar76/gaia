@@ -16,6 +16,7 @@ from __future__ import annotations
 import random
 from dataclasses import dataclass, field
 from pathlib import Path
+from threading import Lock
 from typing import Any
 
 from oracle_core.signing import Signer
@@ -77,6 +78,7 @@ class VirtualDevice:
         self.signer = Signer(Path(key_dir) / f"{device_id}.key")
         self.fault = FaultSpec()
         self._seq = 0
+        self._cluster_sequence_lock = Lock()
         self._last_values: dict[str, float] = {}
 
     # ── Physics contract ───────────────────────────────────────────────────

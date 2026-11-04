@@ -216,16 +216,21 @@ def signed_cluster_read(
     structured_keys: tuple[str, ...] = (),
     reading_meta: dict[str, Any] | None = None,
     empty_values: dict[str, float] | None = None,
+    headline_values: dict[str, float] | None = None,
 ) -> dict[str, Any]:
     """Attest headline plus the complete cluster for ATLAS fan-out.
 
     ``structured_keys`` is intentionally opt-in: most event pins stay compact,
     while geometry-bearing feeds can retain JSON objects/lists without flattening
     them to a 500-character string. The attestation canonical binds ``hotspots``.
+    ``headline_values`` adds signed snapshot-level measurements such as bbox and
+    completeness without copying them into every hotspot.
     """
-    if not hotspots and not empty_values:
+    if not hotspots and not empty_values and not headline_values:
         raise DeviceOffline(f"{device.device_id}: empty cluster")
-    honest: dict[str, float] = dict(empty_values or {}) if not hotspots else {}
+    honest: dict[str, float] = dict(headline_values or {})
+    if not hotspots:
+        honest.update(empty_values or {})
     if hotspots:
         for key in numeric_keys:
             n = _num(hotspots[0].get(key))
@@ -233,8 +238,6 @@ def signed_cluster_read(
                 honest[key] = float(n)
     if not honest:
         raise DeviceOffline(f"{device.device_id}: headline has no numeric fields")
-    values = {k: round(v, 4) for k, v in device._faulted(honest).items()}
-    device._seq += 1
     cluster: list[dict[str, Any]] = []
     for row in hotspots:
         item: dict[str, Any] = {}
@@ -261,12 +264,17 @@ def signed_cluster_read(
                 except (TypeError, ValueError):
                     continue
         cluster.append(item)
+    with device._cluster_sequence_lock:
+        values = {k: round(v, 4) for k, v in device._faulted(honest).items()}
+        device._seq += 1
+        seq = device._seq
+        device._last_values = dict(values)
     reading = {
         "device_id": device.device_id,
         "model": device.model,
         "site": device.site,
         "firmware": device.firmware,
-        "seq": device._seq,
+        "seq": seq,
         "ts": device.clock.iso(),
         "values": values,
         "units": dict(device.fields),
@@ -282,7 +290,6 @@ def signed_cluster_read(
     from gaia.attestation import sign_reading
 
     attestation = sign_reading(reading, device.signer)
-    device._last_values = dict(values)
     return {"reading": reading, "attestation": attestation}
 
 
