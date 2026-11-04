@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import math
 import os
+from collections.abc import Callable
 from typing import Any
 
 from oracle_core import Capability, OracleSpec
@@ -141,6 +142,38 @@ class GatewayRuntime:
 
 
 # ── Handlers ──────────────────────────────────────────────────────────────────
+
+_SOURCE_READ_CAPABILITIES = {
+    "bfs_gamma_odl": "gaia.radiation.ambient.read@v1",
+    "chmi_hydrometry": "gaia.river.read@v1",
+    "eccc_raqdps_smoke": "gaia.smoke.forecast.read@v1",
+    "entur_rail": "gaia.rail.read@v1",
+    "geonet_coastal": "gaia.tide.read@v1",
+    "smhi_ocean_observations": "gaia.ocean.observations.read@v1",
+    "swpc_drap": "gaia.hf.absorption.read@v1",
+}
+
+
+def _scope_device_reads(
+    runtime: GatewayRuntime, capability_id: str, read: Callable[[dict[str, Any]], Any],
+) -> Callable[[dict[str, Any]], Any]:
+    """Bind source-specific devices to their published SKU before legacy handlers run."""
+    def handler(data: dict[str, Any]) -> Any:
+        raw = data if isinstance(data, dict) else {}
+        device_id = str(raw.get("device_id") or "").strip()
+        if device_id:
+            try:
+                device = runtime.fleet.get(device_id)
+            except ValueError:
+                # The handler owns legacy aliases and unknown-device errors.
+                pass
+            else:
+                expected = _SOURCE_READ_CAPABILITIES.get(getattr(device, "policy_id", None))
+                if expected is not None and capability_id != expected:
+                    raise ValueError(f"{device_id} must be read through {expected}")
+        return read(data)
+
+    return handler
 
 
 def _read_handler(
@@ -1060,6 +1093,8 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             price_per_call_usd=0.002, p50_latency_ms=120,
         ))
     from gaia.devices.live import NDBCBuoy, NOAATideStation, OpenMeteoMarine, USGSRiverGauge
+    from gaia.devices.live_chmi_hydro import ChmiRiverGauge
+    from gaia.devices.live_geonet_coastal import GeonetCoastalGauge
     from gaia.devices.live_p1 import UhslcTide
     from gaia.devices.live_p2 import EcccHydrometric, SmhiHydrology
     from gaia.devices.live_p5 import AviationMetar, PegelonlineRiver
@@ -1079,12 +1114,20 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
         for d in runtime.fleet.devices()
         if isinstance(d, (NOAATideStation, UhslcTide, EaTideGauge))
     ]
+    tide_sources = []
+    if tide_ids:
+        tide_sources.append("NOAA CO-OPS (MLLW metres), UHSLC fast-delivery and UK Environment Agency "
+                            "measured 15-minute mean (mAOD) where configured")
+    geonet_coastal_ids = [d.device_id for d in runtime.fleet.devices() if isinstance(d, GeonetCoastalGauge)]
+    if geonet_coastal_ids:
+        tide_ids.extend(geonet_coastal_ids)
+        tide_sources.append("GeoNet New Zealand (CC BY 3.0 NZ), water height above the local pressure sensor "
+                            f"at {', '.join(geonet_coastal_ids)}")
     if tide_ids:
         caps.append(Capability(
             capability_id="gaia.tide.read@v1",
-            description="Live tide-gauge relay — NOAA CO-OPS (MLLW metres) and/or UHSLC "
-                        "fast-delivery and UK Environment Agency measured 15-minute mean "
-                        f"(mAOD). Default device_id={tide_ids[0]}. Ed25519-attested.",
+            description=f"Live tide-gauge relays. {'; '.join(tide_sources)}. "
+                        f"Default device_id={tide_ids[0]}. Ed25519-attested.",
             handler=_read_handler(runtime, tide_ids[0]),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.001, p50_latency_ms=100,
@@ -1113,11 +1156,14 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             (
                 USGSRiverGauge, EcccHydrometric, SmhiHydrology, PegelonlineRiver,
                 EaHydrologyRiver, RwsRiver, SepaRiver, NrwRiver, HubEauRiver, EhydRiver,
-                BafuRiver, LhmtRiver, LvgmcRiver, OpwRiver,
+                BafuRiver, LhmtRiver, LvgmcRiver, OpwRiver, ChmiRiverGauge,
             ),
         )
     ]
     if river_ids:
+        chmi_ids = [device_id for device_id in river_ids if device_id.startswith("chmi-river-")]
+        chmi_description = ("Czech Hydrometeorological Institute ČHMÚ (CC BY 4.0), preliminary paired stage "
+                            f"and discharge at {', '.join(chmi_ids)}. " if chmi_ids else "")
         caps.append(Capability(
             capability_id="gaia.river.read@v1",
             description="Live river-gauge relay — USGS NWIS, ECCC hydrometric (End-use "
@@ -1129,7 +1175,7 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
                         "(OGD-CH Open-Use; geodetic water level, not USGS stage), "
                         "Lithuania LHMT lt-hydro-*-01 (CC BY-SA 4.0), Latvia LVGMC "
                         "lv-hydro-*-01 (CC0-1.0), and/or Ireland OPW ie-river-*-01 "
-                        "(CC BY 4.0; stations >41000 excluded). "
+                        f"(CC BY 4.0; stations >41000 excluded). {chmi_description}"
                         "Discharge (m³/s) + stage when the "
                         f"upstream publishes it. Default device_id={river_ids[0]}. Ed25519-attested.",
             handler=_read_handler(runtime, river_ids[0]),
@@ -1179,6 +1225,20 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.001, p50_latency_ms=120,
         ))
+    from gaia.devices.live_smhi_ocean import SMHI_OCEAN_PILOTS
+
+    ocean_ids = tuple(device_id for device_id in SMHI_OCEAN_PILOTS if _has(device_id))
+    if ocean_ids:
+        caps.append(Capability(
+            capability_id="gaia.ocean.observations.read@v1",
+            description="SMHI measured Swedish coastal ocean observations (CC BY 4.0). "
+                        "Available parameters include currents, salinity and dissolved oxygen. "
+                        "Readings identify the station, measurement depth and observed time, up to 3h old. "
+                        f"Select {', '.join(ocean_ids)}. Default device_id={ocean_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, ocean_ids[0], allowed_devices=ocean_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=350,
+        ))
     ghg_ids = [d.device_id for d in runtime.fleet.devices() if isinstance(d, IcosGhg)]
     if ghg_ids:
         caps.append(Capability(
@@ -1212,6 +1272,17 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             handler=_read_handler(runtime, "safecast-01"),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=200,
+        ))
+    if _has("bfs-odl-01"):
+        caps.append(Capability(
+            capability_id="gaia.radiation.ambient.read@v1",
+            description="BfS Gamma ODL validated hourly ambient gamma dose rates at German stations "
+                        "(Datenlizenz Deutschland – Namensnennung 2.0). The signed cluster preserves each "
+                        "station coordinate and observation time, up to 2h old. Values in nSv/h. "
+                        "Device bfs-odl-01. Ed25519-attested.",
+            handler=_read_handler(runtime, "bfs-odl-01", allowed_devices=("bfs-odl-01",)),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=500,
         ))
     if _has("cybernews-jam-01"):
         caps.append(Capability(
@@ -1272,6 +1343,17 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             handler=_read_handler(runtime, default_spacewx),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=200,
+        ))
+    if _has("swpc-drap-01"):
+        caps.append(Capability(
+            capability_id="gaia.hf.absorption.read@v1",
+            description="NOAA SWPC D-RAP global model of the highest HF frequency experiencing at least "
+                        "1 dB of absorption (MHz). All 8,100 native 2° × 4° cells are signed with the "
+                        "model valid time, up to 15 min old. U.S. public domain. "
+                        "Device swpc-drap-01. Ed25519-attested.",
+            handler=_read_handler(runtime, "swpc-drap-01", allowed_devices=("swpc-drap-01",)),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=250,
         ))
     if _has("glm-01"):
         caps.append(Capability(
@@ -1442,13 +1524,18 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=300,
         ))
-    if _has("fintraffic-rail-01"):
+    rail_ids = tuple(device_id for device_id in ("fintraffic-rail-01", "entur-rail-vyg-01") if _has(device_id))
+    if rail_ids:
+        rail_sources = []
+        if "fintraffic-rail-01" in rail_ids:
+            rail_sources.append("Fintraffic Digitraffic Finnish rail (CC BY 4.0, credit Fintraffic)")
+        if "entur-rail-vyg-01" in rail_ids:
+            rail_sources.append("Entur VYG Norwegian train positions up to five minutes old (NLOD, credit Entur)")
         caps.append(Capability(
             capability_id="gaia.rail.read@v1",
-            description="Live Fintraffic Digitraffic train-location cluster (CC BY 4.0 — credit "
-                        "Fintraffic). Finnish rail only — not EU rail, not road. "
-                        "device_id=fintraffic-rail-01. Ed25519-attested.",
-            handler=_read_handler(runtime, "fintraffic-rail-01"),
+            description=f"Live train-location clusters. {'; '.join(rail_sources)}. "
+                        f"Select {', '.join(rail_ids)}. Default device_id={rail_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, rail_ids[0], allowed_devices=rail_ids),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=300,
         ))
@@ -1471,6 +1558,21 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             handler=_read_handler(runtime, "hms-smoke-01"),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=250,
+        ))
+    from gaia.devices.live_eccc_smoke import ECCC_SMOKE_PILOTS
+
+    smoke_forecast_ids = tuple(device_id for device_id in ECCC_SMOKE_PILOTS if _has(device_id))
+    if smoke_forecast_ids:
+        caps.append(Capability(
+            capability_id="gaia.smoke.forecast.read@v1",
+            description="Environment and Climate Change Canada (ECCC) RAQDPS FireWork smoke forecast. "
+                        "Next-hour modelled near-surface PM2.5 in a wildfire smoke plume, reported in µg/m³ "
+                        "with the model run time, forecast validity and 10 km cell coordinate. "
+                        f"Select {', '.join(smoke_forecast_ids)}. Default device_id={smoke_forecast_ids[0]}. "
+                        "MSC End-use Licence. Ed25519-attested.",
+            handler=_read_handler(runtime, smoke_forecast_ids[0], allowed_devices=smoke_forecast_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=450,
         ))
     if _has("usgs-wq-01"):
         caps.append(Capability(
@@ -1856,6 +1958,9 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             product_id=product, input_schema=PLACE_RESOLVE_IN, output_schema=PLACE_RESOLVE_OUT,
             price_per_call_usd=0.0, p50_latency_ms=5,
         ))
+    for cap in caps:
+        if "device_id" in cap.input_schema.get("properties", {}):
+            cap.handler = _scope_device_reads(runtime, cap.capability_id, cap.handler)
     return OracleSpec(
         name="GAIA — physical-world oracle gateway",
         product_id=product,

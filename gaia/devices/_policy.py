@@ -146,6 +146,11 @@ ALLOWED_HOSTS = frozenset({
     "opendata.chmi.cz",
     "apis.data.go.kr",
     "api.gfm.eodc.eu",
+    "www.imis.bfs.de",
+    "opendata-download-ocobs.smhi.se",
+    "geo.weather.gc.ca",
+    "tilde.geonet.org.nz",
+    "api.entur.io",
     # Day-ahead electricity prices (SMARD / Bundesnetzagentur, CC BY 4.0)
     "www.smard.de",
     # Sentinel-2 L2A (Copernicus, free/full/open): Earth Search STAC + AWS Open Data COGs

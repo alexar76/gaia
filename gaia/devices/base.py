@@ -41,6 +41,7 @@ class VirtualDevice:
 
     model = "GAIA-GENERIC"
     fields: dict[str, str] = {}  # field -> unit (informational; schema comes from here)
+    retain_hotspots_in_history = True
     # Licence-required credit. A CC BY / attributed source is only redistributable
     # if the credit travels WITH the artifact — the buyer holds the reading, not
     # our /wot directory. Set to a source_id in gaia.source_policy; the reading

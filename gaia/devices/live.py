@@ -796,6 +796,51 @@ def build_live_fleet(clock: SimClock, key_dir: str = "data/devices") -> Fleet:
                 site=f"live-{device_id}", key_dir=key_dir,
             ))
 
+    if _env("GAIA_BFS_ODL_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_bfs_odl import BfsGammaOdl
+
+        fleet.add(BfsGammaOdl("bfs-odl-01", clock, site="live-bfs-odl", key_dir=key_dir))
+
+    if _env("GAIA_CHMI_HYDRO_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_chmi_hydro import CHMI_GAUGES, ChmiRiverGauge
+
+        for station_id in CHMI_GAUGES:
+            device_id = f"chmi-river-{station_id.rsplit('-', 1)[-1]}"
+            fleet.add(ChmiRiverGauge(
+                device_id, clock, station_id=station_id, site=f"live-{device_id}", key_dir=key_dir,
+            ))
+
+    if _env("GAIA_SWPC_DRAP_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_swpc_drap import SwpcDRap
+
+        fleet.add(SwpcDRap("swpc-drap-01", clock, site="live-swpc-drap", key_dir=key_dir))
+
+    if _env("GAIA_SMHI_OCEAN_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_smhi_ocean import SMHI_OCEAN_PILOTS, SmhiOcean
+
+        for device_id in SMHI_OCEAN_PILOTS:
+            fleet.add(SmhiOcean(device_id, clock, site=f"live-{device_id}", key_dir=key_dir))
+
+    if _env("GAIA_ECCC_SMOKE_FORECAST_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_eccc_smoke import ECCC_SMOKE_PILOTS, EcccSmokeForecast
+
+        for device_id in ECCC_SMOKE_PILOTS:
+            fleet.add(EcccSmokeForecast(device_id, clock, site=f"live-{device_id}", key_dir=key_dir))
+
+    if _env("GAIA_GEONET_COASTAL_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_geonet_coastal import GEONET_COASTAL_GAUGES, GeonetCoastalGauge
+
+        for gauge in GEONET_COASTAL_GAUGES:
+            device_id = f"geonet-coastal-{gauge.lower()}"
+            fleet.add(GeonetCoastalGauge(
+                device_id, clock, gauge=gauge, site=f"live-{device_id}", key_dir=key_dir,
+            ))
+
+    if _env("GAIA_ENTUR_RAIL_ENABLED", "1") not in ("0", "false", "no"):
+        from gaia.devices.live_entur import EnturRail
+
+        fleet.add(EnturRail("entur-rail-vyg-01", clock, site="live-entur-rail-vyg", key_dir=key_dir))
+
     from gaia.devices.live_p5 import register_p5_relays
 
     n_p5 = register_p5_relays(fleet, clock, key_dir=key_dir)
