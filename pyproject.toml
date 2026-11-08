@@ -11,7 +11,7 @@ name = "aimarket-gaia-gateway"
 # 0.2.2: 0.2.0 and 0.2.1 on PyPI import oracle_core.storage and signing.has_small_order, which the core gained
 # after 0.4.0, yet asked for aimarket-oracle-core>=0.2, so `pip install aimarket-gaia-gateway` resolved 0.4.0 and
 # failed on import (found 2026-10-23).
-version = "0.2.2"
+version = "0.3.0"
 description = "GAIA — physical-world oracle gateway: virtual IoT devices sold as signed, verifiable AIMarket capabilities"
 readme = "README.md"
 requires-python = ">=3.11"
@@ -47,9 +47,19 @@ build-backend = "hatchling.build"
 [tool.hatch.build.targets.wheel]
 packages = ["gaia"]
 
+# The catalogs the modules read from gaia/config/ travel inside the wheel as gaia/_config/ (gaia/config_files.py
+# prefers the repository copy). Without them `import gaia.devices.om_mesh` failed from a pip install.
+[tool.hatch.build.targets.wheel.force-include]
+"config/om_mesh_cities.yaml" = "gaia/_config/om_mesh_cities.yaml"
+"config/sc_mesh_cities.yaml" = "gaia/_config/sc_mesh_cities.yaml"
+"config/extra_sensors.yaml" = "gaia/_config/extra_sensors.yaml"
+
 [tool.hatch.build.targets.sdist]
 include = [
   "/gaia",
+  "/config/om_mesh_cities.yaml",
+  "/config/sc_mesh_cities.yaml",
+  "/config/extra_sensors.yaml",
   "/tests",
   "/README.md",
   "/LICENSE",

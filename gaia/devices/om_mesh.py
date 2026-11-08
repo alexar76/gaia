@@ -33,7 +33,11 @@ class OmCity(TypedDict, total=False):
 
 def _config_path() -> Path:
     # gaia/gaia/devices/om_mesh.py → gaia/config/om_mesh_cities.yaml
-    return Path(__file__).resolve().parents[2] / "config" / "om_mesh_cities.yaml"
+    # The repository copy (gaia/config/) is the one operators edit. A pip install has no such folder, so its
+    # wheel carries a copy in gaia/_config/; reading only the repository path made the import fail there.
+    here = Path(__file__).resolve()
+    repo = here.parents[2] / "config" / "om_mesh_cities.yaml"
+    return repo if repo.is_file() else here.parents[1] / "_config" / "om_mesh_cities.yaml"
 
 
 @lru_cache(maxsize=1)
