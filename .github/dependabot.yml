@@ -1,4 +1,6 @@
 # npm coverage is maintained by scripts/security/configure_npm_security.py.
+# open-pull-requests-limit 0: no routine version-update PRs on the GitHub mirrors (owner, 2026-11-10).
+# Dependencies are updated in the aicom monorepo; GitHub still opens security-update PRs where they are enabled.
 version: 2
 updates:
 - package-ecosystem: npm
@@ -8,7 +10,7 @@ updates:
   schedule:
     interval: weekly
     day: monday
-  open-pull-requests-limit: 5
+  open-pull-requests-limit: 0
   groups:
     npm-security:
       applies-to: security-updates
