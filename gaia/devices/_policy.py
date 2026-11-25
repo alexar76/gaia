@@ -165,6 +165,14 @@ ALLOWED_HOSTS = frozenset({
     "secure.toronto.ca",
     "tor.publicbikesystem.net",
     "ukpowernetworks.opendatasoft.com",
+    # Travel conditions, avalanche bulletins, IMIS snow, Danish grid (2026-11-22)
+    "data.economie.gouv.fr",
+    "nasstatus.faa.gov",
+    "bwt.cbp.gov",
+    "api01.nve.no",
+    "aws.slf.ch",
+    "measurement-api.slf.ch",
+    "api.energidataservice.dk",
     # Day-ahead electricity prices (SMARD / Bundesnetzagentur, CC BY 4.0)
     "www.smard.de",
     # Sentinel-2 L2A (Copernicus, free/full/open): Earth Search STAC + AWS Open Data COGs

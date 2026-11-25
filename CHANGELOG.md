@@ -2,6 +2,17 @@
 
 Notable changes to `aimarket-gaia-gateway`. Earlier releases: the git history.
 
+## 0.4.0 — 2026-11-22
+
+### Added
+- Six public sources as fixed points (`gaia/devices/live_travel.py`, `live_alpine.py`, 2026-11-22):
+  - **Travel conditions:** France pump prices near twelve city centres (`gaia.fuel.price.read@v1`), FAA ground stops
+    and delay programs at thirty US airports (`gaia.airport.status.read@v1`), CBP waits at fourteen land crossings
+    (`gaia.border.wait.read@v1`).
+  - **Mountains:** regional avalanche danger from NVE Varsom and the WSL SLF bulletin (`gaia.avalanche.read@v1`);
+    SLF IMIS snow depth joins `gaia.snow.read@v1`.
+  - **Grid:** Energinet CO₂ intensity for the two Danish price areas joins `gaia.grid.read@v1`.
+
 ## 0.3.0 — 2026-11-08
 
 ### Added

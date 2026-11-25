@@ -915,6 +915,57 @@ def build_live_fleet(clock: SimClock, key_dir: str = "data/devices") -> Fleet:
                 fleet.add(adapter(device_id, clock, station_code=station_code,
                                   site=f"live-{device_id}", key_dir=key_dir))
 
+    if enabled("GAIA_FR_FUEL_ENABLED"):
+        from gaia.devices.live_travel import FR_FUEL_CITIES, FrFuelPrices
+
+        for city in FR_FUEL_CITIES:
+            fleet.add(FrFuelPrices(f"fr-fuel-{city}", clock, city=city, site=f"live-fr-fuel-{city}", key_dir=key_dir))
+
+    if enabled("GAIA_FAA_STATUS_ENABLED"):
+        from gaia.devices.live_travel import FAA_AIRPORTS, FaaAirportStatus
+
+        for airport in FAA_AIRPORTS:
+            device_id = f"faa-status-{airport.lower()}"
+            fleet.add(FaaAirportStatus(device_id, clock, airport=airport, site=f"live-{device_id}", key_dir=key_dir))
+
+    if enabled("GAIA_CBP_BORDER_ENABLED"):
+        from gaia.devices.live_travel import CBP_CROSSINGS, CbpBorderWait
+
+        for port_number in CBP_CROSSINGS:
+            device_id = f"cbp-wait-{port_number}"
+            fleet.add(CbpBorderWait(
+                device_id, clock, port_number=port_number, site=f"live-{device_id}", key_dir=key_dir,
+            ))
+
+    if enabled("GAIA_VARSOM_ENABLED"):
+        from gaia.devices.live_alpine import VARSOM_REGIONS, VarsomAvalanche
+
+        for region_id in VARSOM_REGIONS:
+            device_id = f"varsom-{region_id}"
+            fleet.add(VarsomAvalanche(device_id, clock, region_id=region_id, site=f"live-{device_id}", key_dir=key_dir))
+
+    if enabled("GAIA_SLF_AVALANCHE_ENABLED"):
+        from gaia.devices.live_alpine import SLF_REGIONS, SlfAvalanche
+
+        for region_id in SLF_REGIONS:
+            device_id = f"slf-aval-{region_id.lower()}"
+            fleet.add(SlfAvalanche(device_id, clock, region_id=region_id, site=f"live-{device_id}", key_dir=key_dir))
+
+    if enabled("GAIA_SLF_IMIS_ENABLED"):
+        from gaia.devices.live_alpine import SLF_IMIS_STATIONS, SlfImisSnow
+
+        for station_code in SLF_IMIS_STATIONS:
+            device_id = f"slf-snow-{station_code.lower()}"
+            fleet.add(SlfImisSnow(
+                device_id, clock, station_code=station_code, site=f"live-{device_id}", key_dir=key_dir,
+            ))
+
+    if enabled("GAIA_ENERGINET_ENABLED"):
+        from gaia.devices.live_alpine import ENERGINET_AREAS, EnerginetGrid
+
+        for device_id in ENERGINET_AREAS:
+            fleet.add(EnerginetGrid(device_id, clock, site=f"live-{device_id}", key_dir=key_dir))
+
     from gaia.devices.live_p5 import register_p5_relays
 
     n_p5 = register_p5_relays(fleet, clock, key_dir=key_dir)

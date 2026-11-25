@@ -132,6 +132,15 @@ _FIELD_UNITS: dict[str, str] = {
     "interval_start_unix": "s",
     "horizon_end_unix": "s",
     "resolution_min": "min",
+    # Travel conditions and avalanche bulletins
+    **{f"{stem}{suffix}_eur_l": "EUR/L" for stem in ("diesel", "petrol_e10", "petrol_sp98") for suffix in ("", "_min")},
+    "fuel_station_count": "count",
+    "delay_program_active": "bool", "ground_stop": "bool", "port_open": "bool",
+    **{name: "min" for name in ("ground_delay_avg_min", "ground_delay_max_min", "arrival_delay_max_min",
+                                "departure_delay_max_min", "passenger_delay_min", "commercial_delay_min",
+                                "pedestrian_delay_min")},
+    **{name: "count" for name in ("passenger_lanes_open", "commercial_lanes_open", "pedestrian_lanes_open")},
+    "avalanche_danger_level": "level", "avalanche_danger_level_tomorrow": "level",
 }
 
 _UA = "GAIA-oracle/0.1 (+https://iot.modelmarket.dev; contact@modelmarket.dev)"

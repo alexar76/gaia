@@ -207,6 +207,30 @@ PHYSICS: dict[str, FieldPhysics] = {
     "bikeshare_station_count": FieldPhysics(0.0, 5_000.0, 5_000.0, None, 1.0, z_check=False),
     "sea_level_pressure_hpa": FieldPhysics(800.0, 1100.0, 300.0, None, 0.1, z_check=False),
     "rainfall_mm": FieldPhysics(0.0, 1_000.0, 100.0, None, 0.01, z_check=False),
+    # Pump prices (EUR per litre) near a city centre
+    **{
+        f"{stem}{suffix}_eur_l": FieldPhysics(0.3, 5.0, 4.7, None, 0.001, z_check=False)
+        for stem in ("diesel", "petrol_e10", "petrol_sp98") for suffix in ("", "_min")
+    },
+    "fuel_station_count": FieldPhysics(1.0, 100.0, 100.0, None, 1.0, z_check=False),
+    # FAA airport programs
+    "delay_program_active": FieldPhysics(0.0, 1.0, 1.0, None, 1.0, z_check=False),
+    "ground_stop": FieldPhysics(0.0, 1.0, 1.0, None, 1.0, z_check=False),
+    **{
+        name: FieldPhysics(0.0, 1_440.0, 1_440.0, None, 1.0, z_check=False)
+        for name in ("ground_delay_avg_min", "ground_delay_max_min", "arrival_delay_max_min",
+                     "departure_delay_max_min", "passenger_delay_min", "commercial_delay_min",
+                     "pedestrian_delay_min")
+    },
+    # CBP land crossings
+    "port_open": FieldPhysics(0.0, 1.0, 1.0, None, 1.0, z_check=False),
+    **{
+        name: FieldPhysics(0.0, 100.0, 100.0, None, 1.0, z_check=False)
+        for name in ("passenger_lanes_open", "commercial_lanes_open", "pedestrian_lanes_open")
+    },
+    # Regional avalanche danger, European scale; 0 = no rating published
+    "avalanche_danger_level": FieldPhysics(0.0, 5.0, 5.0, None, 1.0, z_check=False),
+    "avalanche_danger_level_tomorrow": FieldPhysics(0.0, 5.0, 5.0, None, 1.0, z_check=False),
     "snapshot_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
     "source_retrieved_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
     "ignition_unix": FieldPhysics(1.43e9, 4.2e9, 1e9, None, 1.0, z_check=False),
@@ -251,6 +275,10 @@ _SOURCE_FIELD_PHYSICS = {
         for name in ("gage_height_m", "water_temperature_c")
     },
     "noaa_aoml_drifters": {"sst_c": FieldPhysics(-2.5, 40.0, 42.5, None, 0.1, z_check=False)},
+    # Frequent reads repeat the same half-hourly IMIS measurement.
+    "slf_imis": {
+        "temperature_c": replace(PHYSICS["temperature_c"], slope_per_min=None, stuck_check=False, z_check=False),
+    },
     "dea_hotspots": {"brightness_k": FieldPhysics(100.0, 1500.0, 1400.0, None, 0.1, z_check=False)},
     "noaa_spc_storm_reports": {"wind_mps": FieldPhysics(0.0, 135.0, 135.0, None, 0.1, z_check=False)},
 }

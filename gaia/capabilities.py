@@ -167,6 +167,13 @@ _SOURCE_READ_CAPABILITIES = {
     "toronto_bikeshare": "gaia.bikeshare.read@v1",
     "toronto_road_restrictions": "gaia.road.events.read@v1",
     "ukpn_live_faults": "gaia.power.outages.read@v1",
+    "fr_fuel_prices": "gaia.fuel.price.read@v1",
+    "faa_nas_status": "gaia.airport.status.read@v1",
+    "cbp_border_wait": "gaia.border.wait.read@v1",
+    "nve_varsom": "gaia.avalanche.read@v1",
+    "slf_avalanche": "gaia.avalanche.read@v1",
+    "slf_imis": "gaia.snow.read@v1",
+    "energinet_co2": "gaia.grid.read@v1",
 }
 
 
@@ -1111,14 +1118,20 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
     ]
     # Live-only SKUs: only advertised when the relay device is actually registered
     # (GAIA_ENABLE_LIVE=1). Keeps the deterministic test fleet at six caps.
-    if _has("uk-grid-01") or _has("rte-grid-01"):
-        default_grid = "uk-grid-01" if _has("uk-grid-01") else "rte-grid-01"
+    from gaia.devices.live_alpine import ENERGINET_AREAS
+
+    energinet_ids = tuple(device_id for device_id in ENERGINET_AREAS if _has(device_id))
+    if _has("uk-grid-01") or _has("rte-grid-01") or energinet_ids:
+        default_grid = next(d for d in ("uk-grid-01", "rte-grid-01", *energinet_ids) if _has(d))
+        energinet_description = (
+            "Energinet Energi Data Service five-minute CO₂ intensity per Danish price area "
+            f"{', '.join(energinet_ids)} (CC BY 4.0; Energinet's own method). " if energinet_ids else "")
         caps.append(Capability(
             capability_id="gaia.grid.read@v1",
             description="Live grid carbon-intensity relay (gCO₂/kWh): UK National Grid ESO "
                         "Carbon Intensity (uk-grid-01) and/or RTE éCO2mix France national "
                         "production-only CO₂ rte-grid-01 (Etalab OL 2.0; excludes "
-                        "imports/lifecycle). Default "
+                        f"imports/lifecycle). {energinet_description}Default "
                         f"device_id={default_grid}. Ed25519-attested.",
             handler=_read_handler(runtime, default_grid),
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
@@ -1596,6 +1609,62 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
             price_per_call_usd=0.002, p50_latency_ms=350,
         ))
 
+    from gaia.devices.live_alpine import SlfAvalanche, VarsomAvalanche
+    from gaia.devices.live_travel import CbpBorderWait, FaaAirportStatus, FrFuelPrices
+
+    def _ids_of(*types: type) -> tuple[str, ...]:
+        return tuple(d.device_id for d in runtime.fleet.devices() if isinstance(d, types))
+
+    fuel_ids = _ids_of(FrFuelPrices)
+    if fuel_ids:
+        caps.append(Capability(
+            capability_id="gaia.fuel.price.read@v1",
+            description="Pump prices in France from the national Prix des carburants feed (DGCCRF, Licence "
+                        "Ouverte 2.0): median and lowest price in EUR per litre for diesel, E10 and SP98 among "
+                        "stations within 5 km of a city centre, counting prices updated in the last 7 days. "
+                        f"Select {', '.join(fuel_ids)}. Default device_id={fuel_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, fuel_ids[0], allowed_devices=fuel_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=400,
+        ))
+    airport_ids = _ids_of(FaaAirportStatus)
+    if airport_ids:
+        caps.append(Capability(
+            capability_id="gaia.airport.status.read@v1",
+            description="FAA National Airspace System status for a major U.S. airport (U.S. Government work): "
+                        "ground stop, ground delay, and arrival and departure delay programs now in effect. "
+                        "All zero means the FAA lists no program. Not a per-flight delay. "
+                        f"Select {', '.join(airport_ids)}. Default device_id={airport_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, airport_ids[0], allowed_devices=airport_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=300,
+        ))
+    border_ids = _ids_of(CbpBorderWait)
+    if border_ids:
+        caps.append(Capability(
+            capability_id="gaia.border.wait.read@v1",
+            description="U.S. Customs and Border Protection wait times at a land crossing from Mexico or Canada "
+                        "(U.S. Government work): estimated delay in minutes and open standard lanes for "
+                        "passenger vehicles, commercial vehicles and pedestrians, entering the United States. "
+                        f"Select {', '.join(border_ids)}. Default device_id={border_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, border_ids[0], allowed_devices=border_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=400,
+        ))
+    avalanche_ids = _ids_of(VarsomAvalanche, SlfAvalanche)
+    if avalanche_ids:
+        caps.append(Capability(
+            capability_id="gaia.avalanche.read@v1",
+            description="Regional avalanche danger level on the European scale 1 to 5 from the public "
+                        "bulletins of NVE Varsom, Norway (NLOD) and WSL SLF, Switzerland (CC BY 4.0), with "
+                        "publication and expiry times; 0 means no rating is published. A regional forecast, "
+                        f"not a slope assessment. Select {', '.join(avalanche_ids)}. "
+                        f"Default device_id={avalanche_ids[0]}. Ed25519-attested.",
+            handler=_read_handler(runtime, avalanche_ids[0], allowed_devices=avalanche_ids),
+            product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
+            price_per_call_usd=0.002, p50_latency_ms=400,
+        ))
+
     if _has("ukpn-live-faults-01"):
         caps.append(Capability(
             capability_id="gaia.power.outages.read@v1",
@@ -1846,9 +1915,12 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
     from gaia.devices.live_snotel import UsdaSnotel
 
     snotel_ids = tuple(d.device_id for d in runtime.fleet.devices() if isinstance(d, UsdaSnotel))
+    from gaia.devices.live_alpine import SlfImisSnow
+
+    imis_ids = tuple(d.device_id for d in runtime.fleet.devices() if isinstance(d, SlfImisSnow))
     has_snodas = _has("snow-rainier")
-    if has_snodas or snotel_ids:
-        snow_default = "snow-rainier" if has_snodas else snotel_ids[0]
+    if has_snodas or snotel_ids or imis_ids:
+        snow_default = "snow-rainier" if has_snodas else (*snotel_ids, *imis_ids)[0]
         snow_sources = []
         if has_snodas:
             snow_sources.append("NOAA/NWS NOHRSC assimilated SNODAS snow depth and snow-water "
@@ -1856,10 +1928,13 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
         if snotel_ids:
             snow_sources.append("USDA NRCS SNOTEL measured hourly depth and snow-water equivalent "
                                 f"at fixed Colorado stations {', '.join(snotel_ids)} (U.S. public domain).")
+        if imis_ids:
+            snow_sources.append("WSL SLF IMIS measured half-hourly snow depth and air temperature at fixed "
+                                f"Swiss alpine stations {', '.join(imis_ids)} (CC BY 4.0; unchecked data).")
         caps.append(Capability(
             capability_id="gaia.snow.read@v1",
             description=f"{' '.join(snow_sources)} Default device_id={snow_default}.",
-            handler=_p4_geo_handler(runtime, snow_default, fixed_devices=snotel_ids),
+            handler=_p4_geo_handler(runtime, snow_default, fixed_devices=(*snotel_ids, *imis_ids)),
             product_id=product, input_schema=_P4_GEO_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=400,
         ))
