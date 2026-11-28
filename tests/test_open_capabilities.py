@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import httpx
 import pytest
@@ -389,6 +389,20 @@ def test_invoke_fire_radiation_jamming(live_env, monkeypatch):
 def test_feeder_ingest_then_adsb_invoke(live_env):
     app = build_app(live_env, public_url="http://gaia.test")
     with TestClient(app) as client:
+        def availability():
+            tools = client.get("/ai-market/v2/manifest").json()["tools"]
+            return next(tool["available_until"] for tool in tools
+                        if tool["capability_id"] == "gaia.adsb.read@v1")
+
+        invoke = {
+            "capability_id": "gaia.adsb.read@v1",
+            "product_id": "gaia.gateway",
+            "input": {"device_id": "feeder-adsb-01"},
+        }
+        assert availability() is None
+        assert client.post("/ai-market/v2/invoke", json=invoke).json() == {
+            "ok": False, "error": "source has no fresh data",
+        }
         bad = client.post(
             "/feeder/v1/ingest",
             json={
@@ -413,18 +427,18 @@ def test_feeder_ingest_then_adsb_invoke(live_env):
         )
         assert ok.status_code == 200
         assert ok.json()["ok"] is True
+        assert datetime.fromisoformat(availability()) > datetime.now(timezone.utc)
 
-        r = client.post(
-            "/ai-market/v2/invoke",
-            json={
-                "capability_id": "gaia.adsb.read@v1",
-                "product_id": "gaia.gateway",
-                "input": {"device_id": "feeder-adsb-01"},
-            },
-        )
+        r = client.post("/ai-market/v2/invoke", json=invoke)
         assert r.status_code == 200
         vals = r.json()["output"]["reading"]["values"]
         assert vals["altitude_m"] == pytest.approx(3000.0)
+
+        stale_at = datetime.now(timezone.utc) - timedelta(minutes=11)
+        FEEDER_STORE.put("feeder-adsb-01", {"latitude": 40.7, "longitude": -74.0},
+                         observed_at=stale_at.timestamp())
+        assert availability() is None
+        assert client.post("/ai-market/v2/invoke", json=invoke).json()["ok"] is False
 
 
 def test_invoke_p0_p1_capabilities(live_env):

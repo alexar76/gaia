@@ -1991,12 +1991,14 @@ def build_spec(runtime: GatewayRuntime, public_url: str | None = None) -> Oracle
         if isinstance(d, FeederDevice) and d.kind == "iot"
     ]
     if adsb_ids:
+        adsb_feeder = runtime.fleet.get(adsb_ids[0])
         caps.append(Capability(
             capability_id="gaia.adsb.read@v1",
             description="Own-edge ADS-B feeder reading (operator dump1090 push). Offline until "
                         f"ingest. Default device_id={adsb_ids[0]}. Not a third-party aggregator. "
                         "Ed25519-attested.",
             handler=_read_handler(runtime, adsb_ids[0]),
+            available_until=adsb_feeder.available_until,
             product_id=product, input_schema=_DEVICE_IN, output_schema=_READING_OUT,
             price_per_call_usd=0.002, p50_latency_ms=20,
         ))

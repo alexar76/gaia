@@ -69,6 +69,8 @@ class Capability:
     # own traffic analysis found a 72-address residential-proxy fleet. 60_000 is one
     # core; the whole family shares one box.
     global_cpu_budget_ms_per_min: float | None = None
+    # Expiry of the current observation, in Unix seconds. None from the callback means offline.
+    available_until: Callable[[], float | None] | None = None
 
     def estimate_cost_ms(self, input_data: dict[str, Any]) -> float:
         """Cost of this input in CPU-ms, or 1.0 for a capability that declares none.
@@ -115,6 +117,12 @@ class Capability:
             out["cpu_budget_ms_per_min"] = self.cpu_budget_ms_per_min
         if self.global_cpu_budget_ms_per_min is not None:
             out["global_cpu_budget_ms_per_min"] = self.global_cpu_budget_ms_per_min
+        if self.available_until is not None:
+            expiry = self.available_until()
+            out["available_until"] = (
+                datetime.fromtimestamp(expiry, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                if expiry is not None else None
+            )
         return out
 
 

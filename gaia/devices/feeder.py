@@ -138,6 +138,14 @@ class FeederDevice(LiveDevice):
     def map(self, payload: Any) -> dict[str, float | None]:  # pragma: no cover
         raise NotImplementedError("FeederDevice uses ingest store, not HTTP map()")
 
+    def available_until(self) -> float | None:
+        rec = self._store.get(self.device_id)
+        if rec is None:
+            return None
+        observed_at = rec["observed_at"]
+        expires_at = observed_at + self.max_age_s
+        return expires_at if observed_at <= time.time() < expires_at else None
+
     def sample(self) -> dict[str, float]:
         rec = self._store.get(self.device_id)
         if not rec:

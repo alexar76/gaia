@@ -299,6 +299,8 @@ def create_app(
         except ValueError:
             listed = None
         if listed is not None:
+            if listed.available_until is not None and listed.available_until() is None:
+                return {"ok": False, "error": "source has no fresh data"}
             refused = gate.check(
                 req.capability_id, float(listed.price_per_call_usd or 0.0), req.input,
                 request.headers, paid=paid, caller=caller, note=note,
